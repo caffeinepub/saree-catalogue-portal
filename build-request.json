@@ -1,0 +1,111 @@
+{
+  "kind": "build_request",
+  "title": "Deploy application to Internet Computer canister",
+  "projectName": "Weaver Catalog",
+  "priority": "high",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "text": "Configure dfx.json with proper canister definitions for both backend (Motoko) and frontend (React) canisters with appropriate build settings",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-recent"
+        ],
+        "quotes": [
+          "take me live in production by deploying to internet computer canister"
+        ]
+      },
+      "acceptanceCriteria": [
+        "dfx.json exists in project root with backend and frontend canister configurations",
+        "Backend canister specifies main.mo as the main file",
+        "Frontend canister is configured as an asset canister with proper source directory",
+        "Network configurations include local and ic (mainnet) settings"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Ensure frontend build process generates proper Candid declarations and environment variables for canister IDs",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-recent"
+        ],
+        "quotes": [
+          "take me live in production by deploying to internet computer canister"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Vite build configuration includes plugins for Candid declaration generation",
+        "Environment variables for canister IDs are properly injected during build",
+        "Frontend can successfully import and use backend declarations"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Verify backend main.mo is ready for IC deployment with proper stable variable usage for state persistence across upgrades",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-recent"
+        ],
+        "quotes": [
+          "take me live in production by deploying to internet computer canister"
+        ]
+      },
+      "acceptanceCriteria": [
+        "All state variables in main.mo use stable var declaration",
+        "No temporary or volatile state exists that would be lost on canister upgrade",
+        "Canister can be successfully compiled with dfx build"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Remove GitHub Pages deployment configuration including .github/workflows/deploy.yml and frontend/public/.nojekyll files",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-recent"
+        ]
+      },
+      "acceptanceCriteria": [
+        ".github/workflows/deploy.yml is removed from the project",
+        "frontend/public/.nojekyll is removed from the project",
+        "No references to GitHub Pages remain in configuration files"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Update frontend routing and asset paths to work correctly within IC canister environment using relative paths",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-recent"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Vite base configuration is set to './' for relative path support",
+        "All asset imports use relative paths compatible with IC asset canister",
+        "Router configuration works with canister URL structure",
+        "Static assets load correctly when deployed to IC"
+      ]
+    }
+  ],
+  "constraints": [
+    "Must deploy to Internet Computer mainnet canisters",
+    "Backend must use existing Motoko code in backend/main.mo",
+    "Frontend must remain React with TypeScript, Tailwind CSS, and React Query",
+    "Must preserve all existing functionality including authentication, profile management, catalog, and customers",
+    "Do not modify immutable frontend paths: useInternetIdentity.ts, useInternetIdentity.tsx, useActor.ts, main.tsx, components/ui"
+  ],
+  "nonGoals": [
+    "Rewriting the application in a different framework",
+    "Adding new features beyond IC deployment",
+    "Changing the existing UI or user experience",
+    "Migrating to a different blockchain or cloud platform"
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}

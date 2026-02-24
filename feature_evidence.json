@@ -1,0 +1,47 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-ensure-frontend-build-process-generates-proper-candid-declarations-and-environment-variables-for-canister-ids",
+      "featureTitle": "Ensure frontend build process generates proper Candid declarations and environment variables for canister IDs",
+      "files": [
+        "frontend/.env.example"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-frontend-routing-and-asset-paths-to-work-correctly-within-ic-canister-environment-using-relative-paths",
+      "featureTitle": "Update frontend routing and asset paths to work correctly within IC canister environment using relative paths",
+      "files": [
+        "frontend/index.html",
+        "frontend/src/components/FeatureSection.tsx",
+        "frontend/src/pages/HomePage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

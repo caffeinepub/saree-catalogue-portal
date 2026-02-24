@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 3,
+  "summary": "Internet Computer (IC) canister deployment project",
+  "architectural_notes": [
+    "Target platform: Internet Computer blockchain canisters"
+  ],
+  "known_issues": [
+    "Previous deployment attempts to IC canisters have failed"
+  ],
+  "isFixRequest": true,
+  "existing_features": [
+    {
+      "id": "feature-ensure-frontend-build-process-generates-proper-candid-declarations-and-environment-variables-for-canister-ids",
+      "title": "Ensure frontend build process generates proper Candid declarations and environment variables for canister IDs",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-frontend-routing-and-asset-paths-to-work-correctly-within-ic-canister-environment-using-relative-paths",
+      "title": "Update frontend routing and asset paths to work correctly within IC canister environment using relative paths",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Deploy application to Internet Computer canister",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Configure dfx.json with proper canister definitions for both backend (Motoko) and frontend (React) canisters with appropriate build settings",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Verify backend main.mo is ready for IC deployment with proper stable variable usage for state persistence across upgrades",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Remove GitHub Pages deployment configuration including .github/workflows/deploy.yml and frontend/public/.nojekyll files",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "status": "pending"
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "Weaver Catalog",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}
