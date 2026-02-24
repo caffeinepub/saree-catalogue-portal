@@ -1,0 +1,85 @@
+{
+  "kind": "build_request",
+  "title": "Fix GitHub Pages deployment to load web application instead of README",
+  "projectName": "Weaver Catalog Portal",
+  "priority": "high",
+  "requirements": [
+    {
+      "id": "REQ-38",
+      "text": "Configure GitHub Pages deployment settings to serve the built frontend application from the correct directory instead of displaying README file names when the deployment URL is accessed",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-last"
+        ],
+        "quotes": [
+          "when i load my url, it only shows the read me file names"
+        ]
+      },
+      "acceptanceCriteria": [
+        "When accessing the GitHub Pages URL, the Weaver Catalog Portal web application loads correctly",
+        "The homepage displays the landing page with hero section and features instead of README content",
+        "All frontend routes and navigation function properly on the deployed site",
+        "Static assets (images, CSS, JavaScript) load successfully from the deployment"
+      ]
+    },
+    {
+      "id": "REQ-39",
+      "text": "Add a .nojekyll file to the deployment output to prevent GitHub Pages from treating the site as a Jekyll site and potentially ignoring critical frontend files",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-last"
+        ]
+      },
+      "acceptanceCriteria": [
+        "A .nojekyll file exists in the root of the deployment directory",
+        "GitHub Pages serves all frontend files including those starting with underscores"
+      ]
+    },
+    {
+      "id": "REQ-40",
+      "text": "Ensure the build output directory structure is compatible with GitHub Pages by placing index.html and all compiled assets at the root level of the deployment branch",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-last"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The built index.html file is at the root of the deployment directory",
+        "All JavaScript bundles and CSS files are accessible from the deployed URL",
+        "Asset paths in index.html resolve correctly to the deployed static files"
+      ]
+    },
+    {
+      "id": "REQ-41",
+      "text": "Configure base URL in the frontend build configuration to match the GitHub Pages deployment path if the site is deployed to a project subdirectory rather than a custom domain",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-last"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Frontend routing works correctly on the deployed GitHub Pages URL",
+        "Asset URLs resolve properly whether deployed to username.github.io/repo-name or a custom domain",
+        "Hash-based routing functions correctly on the deployed site"
+      ]
+    }
+  ],
+  "constraints": [
+    "Do not modify backend Motoko files",
+    "Preserve existing frontend routing logic using TanStack Router",
+    "Maintain compatibility with Internet Computer deployment while fixing GitHub Pages deployment"
+  ],
+  "nonGoals": [
+    "Changing the application functionality or features",
+    "Modifying the project structure beyond what is needed for GitHub Pages compatibility",
+    "Implementing continuous deployment or automated GitHub Actions workflows"
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}

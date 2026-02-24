@@ -1,0 +1,91 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Fix GitHub Pages deployment to load web application instead of README",
+  "requirements": [
+    {
+      "id": "REQ-38",
+      "summary": "Configure GitHub Pages deployment settings to serve the built frontend application from the correct directory instead of displaying README file names when the deployment URL is accessed",
+      "acceptanceCriteria": [
+        "When accessing the GitHub Pages URL, the Weaver Catalog Portal web application loads correctly",
+        "The homepage displays the landing page with hero section and features instead of README content",
+        "All frontend routes and navigation function properly on the deployed site",
+        "Static assets (images, CSS, JavaScript) load successfully from the deployment"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/vite.config.ts",
+          "operation": "modify",
+          "description": "Configure the build output directory and base URL for GitHub Pages deployment. If deploying to a project subdirectory (username.github.io/repo-name), set the base option to match the repository name. Ensure the build output is structured correctly with index.html at the root."
+        },
+        {
+          "path": "frontend/package.json",
+          "operation": "modify",
+          "description": "Add or update the build script to ensure the frontend builds to the correct output directory for GitHub Pages deployment. Verify that the build command produces a production-ready bundle."
+        },
+        {
+          "path": ".github/workflows/deploy.yml",
+          "operation": "create",
+          "description": "Create a GitHub Actions workflow that builds the frontend application and deploys it to GitHub Pages. The workflow should checkout code, install dependencies, run the build command, and deploy the contents of the build output directory (typically dist or build) to the gh-pages branch or GitHub Pages deployment branch."
+        }
+      ]
+    },
+    {
+      "id": "REQ-39",
+      "summary": "Add a .nojekyll file to the deployment output to prevent GitHub Pages from treating the site as a Jekyll site and potentially ignoring critical frontend files",
+      "acceptanceCriteria": [
+        "A .nojekyll file exists in the root of the deployment directory",
+        "GitHub Pages serves all frontend files including those starting with underscores"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/public/.nojekyll",
+          "operation": "create",
+          "description": "Create an empty .nojekyll file in the public directory. This file will be copied to the build output during the build process, instructing GitHub Pages to bypass Jekyll processing and serve all files including those with underscores in their names."
+        }
+      ]
+    },
+    {
+      "id": "REQ-40",
+      "summary": "Ensure the build output directory structure is compatible with GitHub Pages by placing index.html and all compiled assets at the root level of the deployment branch",
+      "acceptanceCriteria": [
+        "The built index.html file is at the root of the deployment directory",
+        "All JavaScript bundles and CSS files are accessible from the deployed URL",
+        "Asset paths in index.html resolve correctly to the deployed static files"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/vite.config.ts",
+          "operation": "modify",
+          "description": "Verify that the Vite build configuration outputs index.html and all compiled assets (JS, CSS) at the root of the dist directory. Ensure the outDir is set correctly and that there are no nested subdirectories that would prevent GitHub Pages from finding index.html."
+        },
+        {
+          "path": ".github/workflows/deploy.yml",
+          "operation": "modify",
+          "description": "Update the GitHub Actions deployment workflow to deploy the exact contents of the build output directory (e.g., frontend/dist) to GitHub Pages. Ensure the deployment step publishes the directory containing index.html at its root level."
+        }
+      ]
+    },
+    {
+      "id": "REQ-41",
+      "summary": "Configure base URL in the frontend build configuration to match the GitHub Pages deployment path if the site is deployed to a project subdirectory rather than a custom domain",
+      "acceptanceCriteria": [
+        "Frontend routing works correctly on the deployed GitHub Pages URL",
+        "Asset URLs resolve properly whether deployed to username.github.io/repo-name or a custom domain",
+        "Hash-based routing functions correctly on the deployed site"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/vite.config.ts",
+          "operation": "modify",
+          "description": "Configure the base option in Vite config to match the GitHub Pages deployment path. For project pages (username.github.io/repo-name), set base to '/repo-name/'. For custom domains or user/org pages, set base to '/'. Consider using an environment variable to make this configurable between local development and production deployment."
+        },
+        {
+          "path": "frontend/src/main.tsx",
+          "operation": "modify",
+          "description": "Ensure the TanStack Router configuration in the application entry point accounts for the base URL when deployed to GitHub Pages. Verify that the router base path is compatible with both Internet Computer deployment and GitHub Pages deployment with hash-based routing."
+        }
+      ]
+    }
+  ]
+}

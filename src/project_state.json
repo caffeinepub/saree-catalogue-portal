@@ -1,0 +1,483 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 15,
+  "summary": "Mobile-friendly web portal for Indian weavers to manage and share saree catalogs with different customer types (retail, wholesale, direct). Weavers register via Google account, manage catalog with images, customize branding, and share customer-type-specific catalog links.",
+  "architectural_notes": [
+    "Mobile browser compatibility required for all views",
+    "Google OAuth integration for weaver authentication",
+    "Multi-tenant architecture to support multiple weaver accounts",
+    "Image storage and optimization for catalog photos",
+    "Catalog items require customer-type-specific pricing model",
+    "Backend auto-increment ID system scoped per weaver account",
+    "Public catalog pages must display weaver branding without authentication",
+    "Customer-type-specific pricing visibility on shared links based on URL parameters",
+    "Product image storage must support multiple images per product (up to 5)",
+    "Share functionality requires customer type selection UI before link generation"
+  ],
+  "known_issues": [
+    "Add/Edit catalog modal still has transparent background instead of white",
+    "Price input fields in ProductForm lack labels indicating which customer type each field is for",
+    "Public catalog links require authentication instead of opening directly without login",
+    "Share button on catalog listing page does not present customer type selection before generating link",
+    "Public catalog share links return 404 not found error",
+    "Multiple image upload (up to 5 images per product) not yet implemented",
+    "GitHub Pages deployment shows README file names instead of loading the web portal application"
+  ],
+  "isFixRequest": true,
+  "existing_features": [
+    {
+      "id": "feature-implement-weaver-registration-and-authentication-using-google-account-integration",
+      "title": "Implement weaver registration and authentication using Google account integration",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-weaver-profile-customization-allowing-weavers-to-add-and-update-their-logo-business-name-and-address",
+      "title": "Create weaver profile customization allowing weavers to add and update their logo, business name, and address",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-build-catalog-management-system-allowing-weavers-to-add-edit-and-delete-saree-images-with-product-details",
+      "title": "Build catalog management system allowing weavers to add, edit, and delete saree images with product details",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-generate-unique-always-available-shareable-catalog-links-filtered-by-customer-type-that-display-appropriate-catalog-items-without-requiring-authentication",
+      "title": "Generate unique, always-available shareable catalog links filtered by customer type that display appropriate catalog items without requiring authentication",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-customer-details-management-portal-allowing-weavers-to-add-and-manage-customer-contact-information-including-name-type-and-contact-details",
+      "title": "Create customer details management portal allowing weavers to add and manage customer contact information including name, type, and contact details",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-design-a-mobile-responsive-interface-optimized-for-mobile-browsers-that-works-seamlessly-across-all-screen-sizes",
+      "title": "Design a mobile-responsive interface optimized for mobile browsers that works seamlessly across all screen sizes",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-establish-a-cohesive-visual-design-inspired-by-traditional-indian-textiles-using-warm-earth-tones-terracotta-saffron-deep-crimson-with-elegant-serif-typography-and-flowing-layout-patterns-that-honor-the-craftsmanship-of-indian-weavers",
+      "title": "Establish a cohesive visual design inspired by traditional Indian textiles, using warm earth tones (terracotta, saffron, deep crimson) with elegant serif typography and flowing layout patterns that honor the craftsmanship of Indian weavers",
+      "reqIds": [
+        "REQ-8"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-available-quantity-tracking-field-to-product-model-and-expose-it-in-product-creation-and-editing-interfaces",
+      "title": "Add available quantity tracking field to Product model and expose it in product creation and editing interfaces",
+      "reqIds": [
+        "REQ-10"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-made-to-order-indicator-flag-to-product-model-and-include-toggle-control-in-product-form",
+      "title": "Add made-to-order indicator flag to Product model and include toggle control in product form",
+      "reqIds": [
+        "REQ-11"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-generate-shareable-links-for-individual-catalog-items-that-route-to-a-single-product-detail-view-without-authentication",
+      "title": "Generate shareable links for individual catalog items that route to a single-product detail view without authentication",
+      "reqIds": [
+        "REQ-12"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-quick-mark-out-of-stock-action-button-to-productcard-on-catalog-listing-page-that-updates-availability-without-opening-edit-modal",
+      "title": "Add quick 'Mark Out of Stock' action button to ProductCard on catalog listing page that updates availability without opening edit modal",
+      "reqIds": [
+        "REQ-14"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-quick-delete-button-to-productcard-on-catalog-listing-page-with-confirmation-dialog",
+      "title": "Add quick delete button to ProductCard on catalog listing page with confirmation dialog",
+      "reqIds": [
+        "REQ-15"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-productform-to-include-separate-price-input-fields-for-retail-wholesale-and-direct-customer-types",
+      "title": "Update ProductForm to include separate price input fields for retail, wholesale, and direct customer types",
+      "reqIds": [
+        "REQ-16"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-transparent-background-issue-in-the-add-catalog-and-edit-catalog-modal-productform-so-it-is-visible-and-has-proper-contrast",
+      "title": "Fix the transparent background issue in the add catalog and edit catalog modal (ProductForm) so it is visible and has proper contrast",
+      "reqIds": [
+        "REQ-17"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-inline-plus-minus-quantity-adjustment-controls-to-each-productcard-on-the-catalog-listing-page-that-update-the-available-quantity-without-opening-the-edit-modal",
+      "title": "Add inline plus/minus quantity adjustment controls to each ProductCard on the catalog listing page that update the available quantity without opening the edit modal",
+      "reqIds": [
+        "REQ-18"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-quick-mark-out-of-stock-toggle-control-directly-on-each-productcard-in-the-catalog-listing-page-that-updates-stock-status-without-opening-the-edit-modal",
+      "title": "Add a quick 'Mark Out of Stock' toggle control directly on each ProductCard in the catalog listing page that updates stock status without opening the edit modal",
+      "reqIds": [
+        "REQ-19"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-color-selection-field-to-the-product-model-and-productform-that-allows-users-to-select-multiple-colors-from-a-standard-color-list-or-choose-multiple-custom-colors",
+      "title": "Add a color selection field to the Product model and ProductForm that allows users to select multiple colors from a standard color list or choose multiple custom colors",
+      "reqIds": [
+        "REQ-20"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-publiccatalogpage-to-display-only-the-price-relevant-to-the-customer-type-specified-in-the-shareable-link-retail-wholesale-or-direct-without-requiring-authentication",
+      "title": "Update PublicCatalogPage to display only the price relevant to the customer type specified in the shareable link (retail, wholesale, or direct), without requiring authentication",
+      "reqIds": [
+        "REQ-21"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-display-the-weaver-s-branding-logo-and-business-name-prominently-on-publiccatalogpage-and-publicproductdetailpage-so-customers-always-see-whose-catalog-they-are-viewing",
+      "title": "Display the weaver's branding (logo and business name) prominently on PublicCatalogPage and PublicProductDetailPage so customers always see whose catalog they are viewing",
+      "reqIds": [
+        "REQ-22"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-transparent-background-in-the-productform-modal-add-edit-catalog-popup-by-ensuring-it-has-a-solid-white-background-with-proper-contrast",
+      "title": "Fix the transparent background in the ProductForm modal (add/edit catalog popup) by ensuring it has a solid white background with proper contrast",
+      "reqIds": [
+        "REQ-23"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-clear-labels-to-the-price-input-fields-in-productform-indicating-which-customer-type-each-field-is-for-retail-wholesale-direct",
+      "title": "Add clear labels to the price input fields in ProductForm indicating which customer type each field is for (retail, wholesale, direct)",
+      "reqIds": [
+        "REQ-24"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-share-button-functionality-on-productcard-in-the-catalog-listing-page-so-it-properly-copies-the-product-share-link-to-clipboard",
+      "title": "Fix the share button functionality on ProductCard in the catalog listing page so it properly copies the product share link to clipboard",
+      "reqIds": [
+        "REQ-25"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-plus-and-minus-quantity-adjustment-buttons-on-productcard-in-the-catalog-listing-page-so-they-properly-increment-and-decrement-product-quantities",
+      "title": "Fix the plus and minus quantity adjustment buttons on ProductCard in the catalog listing page so they properly increment and decrement product quantities",
+      "reqIds": [
+        "REQ-26"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-remove-authentication-requirement-from-public-catalog-links-so-customers-can-view-the-catalog-listing-page-directly-without-logging-in",
+      "title": "Remove authentication requirement from public catalog links so customers can view the catalog listing page directly without logging in",
+      "reqIds": [
+        "REQ-27"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-share-button-on-productcard-in-the-catalog-listing-page-to-present-a-customer-type-selection-dialog-retail-wholesale-direct-before-generating-and-copying-the-shareable-link-to-clipboard",
+      "title": "Fix the share button on ProductCard in the catalog listing page to present a customer type selection dialog (retail/wholesale/direct) before generating and copying the shareable link to clipboard",
+      "reqIds": [
+        "REQ-28"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-public-catalog-share-links-to-properly-route-to-publiccatalogpage-instead-of-returning-404-not-found-error",
+      "title": "Fix the public catalog share links to properly route to PublicCatalogPage instead of returning 404 not found error",
+      "reqIds": [
+        "REQ-29"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-plus-and-minus-quantity-adjustment-buttons-on-productcard-in-the-catalog-listing-page-so-they-properly-increment-and-decrement-available-quantity-values-and-persist-changes-to-the-backend",
+      "title": "Fix the plus and minus quantity adjustment buttons on ProductCard in the catalog listing page so they properly increment and decrement available quantity values and persist changes to the backend",
+      "reqIds": [
+        "REQ-30"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-productform-to-allow-uploading-and-managing-multiple-images-up-to-5-for-each-product-with-preview-reordering-and-individual-removal-capabilities",
+      "title": "Update ProductForm to allow uploading and managing multiple images (up to 5) for each product with preview, reordering, and individual removal capabilities",
+      "reqIds": [
+        "REQ-32"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-productcard-on-the-catalog-listing-page-to-display-the-primary-first-image-from-the-product-s-image-array",
+      "title": "Update ProductCard on the catalog listing page to display the primary (first) image from the product's image array",
+      "reqIds": [
+        "REQ-33"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-publicproductdetailpage-to-display-all-product-images-up-to-5-with-a-gallery-view-or-image-carousel",
+      "title": "Update PublicProductDetailPage to display all product images (up to 5) with a gallery view or image carousel",
+      "reqIds": [
+        "REQ-34"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-nojekyll-file-to-the-deployment-output-to-prevent-github-pages-from-treating-the-site-as-a-jekyll-site-and-potentially-ignoring-critical-frontend-files",
+      "title": "Add a .nojekyll file to the deployment output to prevent GitHub Pages from treating the site as a Jekyll site and potentially ignoring critical frontend files",
+      "reqIds": [
+        "REQ-39"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Weaver registration and authentication via Google account",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Catalog management system for weavers to add and manage saree images",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Customer type categorization (retail, wholesale, direct)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Shareable catalog links filtered by customer type",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Customer details management portal for weavers",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Weaver profile customization (logo, name, address)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-10",
+      "summary": "Implement customer type categorization system supporting retail, wholesale, and direct customer types",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-11",
+      "summary": "Add per-customer-type pricing fields to catalog items",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-12",
+      "summary": "Add available quantity tracking for catalog items",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-13",
+      "summary": "Add made-to-order indicator flag for catalog items",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-14",
+      "summary": "Generate shareable links for individual catalog items",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-15",
+      "summary": "Auto-generate incremental catalog item IDs per weaver",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-16",
+      "summary": "Add quick mark-as-out-of-stock action on catalog listing page",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-17",
+      "summary": "Add quick delete action for catalog items on listing page",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-18",
+      "summary": "Extend the Product data model in backend to support per-customer-type pricing with separate price fields for retail, wholesale, and direct customer types",
+      "reqIds": [
+        "REQ-9"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-22",
+      "summary": "Implement auto-incrementing product IDs per weaver in backend, starting from 1 for each weaver's first product",
+      "reqIds": [
+        "REQ-13"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-23",
+      "summary": "Add color selection field to product model with support for multiple standard colors or custom color options",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-24",
+      "summary": "Add inline quantity adjustment controls (plus/minus buttons) to product cards on catalog listing page",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-25",
+      "summary": "Display weaver branding (logo, business name) on public customer-facing catalog pages",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-26",
+      "summary": "Show customer-type-specific pricing on public catalog links without requiring authentication",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-27",
+      "summary": "Share button should present customer type selection before generating shareable link",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-28",
+      "summary": "Support multiple product images (up to 5) per catalog item",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-32",
+      "summary": "Update the Product data model in backend/main.mo to support multiple image URLs (up to 5 images) instead of a single image URL",
+      "reqIds": [
+        "REQ-31"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-33",
+      "summary": "Move frontend/index.html to the project root directory so it is located at the top level alongside dfx.json and package.json",
+      "reqIds": [
+        "REQ-35"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-34",
+      "summary": "Update all references to index.html throughout the project configuration files (dfx.json, package.json, vite.config.ts, or similar) to point to the root-level index.html instead of frontend/index.html",
+      "reqIds": [
+        "REQ-36"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-35",
+      "summary": "Update the script source path in the root-level index.html to correctly reference frontend/src/main.tsx given the new file location",
+      "reqIds": [
+        "REQ-37"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-36",
+      "summary": "Fix GitHub Pages deployment so the web portal loads correctly instead of displaying README file names",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-37",
+      "summary": "Configure GitHub Pages deployment settings to serve the built frontend application from the correct directory instead of displaying README file names when the deployment URL is accessed",
+      "reqIds": [
+        "REQ-38"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-39",
+      "summary": "Ensure the build output directory structure is compatible with GitHub Pages by placing index.html and all compiled assets at the root level of the deployment branch",
+      "reqIds": [
+        "REQ-40"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-40",
+      "summary": "Configure base URL in the frontend build configuration to match the GitHub Pages deployment path if the site is deployed to a project subdirectory rather than a custom domain",
+      "reqIds": [
+        "REQ-41"
+      ],
+      "status": "pending"
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "Weaver Catalog Portal",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

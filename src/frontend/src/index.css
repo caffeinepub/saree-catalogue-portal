@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Traditional Indian textile palette - Light mode */
+    --background: oklch(98% 0.01 60);
+    --foreground: oklch(20% 0.02 60);
+    
+    --card: oklch(100% 0 0);
+    --card-foreground: oklch(20% 0.02 60);
+    
+    --popover: oklch(100% 0 0);
+    --popover-foreground: oklch(20% 0.02 60);
+    
+    /* Terracotta primary */
+    --primary: oklch(62% 0.15 35);
+    --primary-foreground: oklch(100% 0 0);
+    
+    /* Saffron secondary */
+    --secondary: oklch(75% 0.12 70);
+    --secondary-foreground: oklch(20% 0.02 60);
+    
+    /* Crimson accent */
+    --accent: oklch(95% 0.02 60);
+    --accent-foreground: oklch(20% 0.02 60);
+    
+    --muted: oklch(96% 0.01 60);
+    --muted-foreground: oklch(50% 0.02 60);
+    
+    --destructive: oklch(55% 0.20 25);
+    --destructive-foreground: oklch(100% 0 0);
+    
+    --success: oklch(60% 0.15 145);
+    --warning: oklch(70% 0.15 70);
+    
+    --border: oklch(90% 0.01 60);
+    --input: oklch(90% 0.01 60);
+    --ring: oklch(62% 0.15 35);
+    
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    /* Dark mode with warm tones */
+    --background: oklch(18% 0.02 60);
+    --foreground: oklch(95% 0.01 60);
+    
+    --card: oklch(22% 0.02 60);
+    --card-foreground: oklch(95% 0.01 60);
+    
+    --popover: oklch(22% 0.02 60);
+    --popover-foreground: oklch(95% 0.01 60);
+    
+    --primary: oklch(62% 0.15 35);
+    --primary-foreground: oklch(100% 0 0);
+    
+    --secondary: oklch(75% 0.12 70);
+    --secondary-foreground: oklch(20% 0.02 60);
+    
+    --accent: oklch(28% 0.02 60);
+    --accent-foreground: oklch(95% 0.01 60);
+    
+    --muted: oklch(28% 0.02 60);
+    --muted-foreground: oklch(65% 0.02 60);
+    
+    --destructive: oklch(55% 0.20 25);
+    --destructive-foreground: oklch(100% 0 0);
+    
+    --success: oklch(60% 0.15 145);
+    --warning: oklch(70% 0.15 70);
+    
+    --border: oklch(32% 0.02 60);
+    --input: oklch(32% 0.02 60);
+    --ring: oklch(62% 0.15 35);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
