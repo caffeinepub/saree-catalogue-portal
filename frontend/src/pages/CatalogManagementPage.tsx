@@ -1,128 +1,171 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
-import ProductCard from '../components/ProductCard';
-import ProductForm from '../components/ProductForm';
+import { useState } from "react";
 import {
   useGetMyProducts,
   useAddProduct,
   useUpdateProduct,
   useRemoveProduct,
-  useUpdateProductQuantity,
-  useToggleStockStatus,
-} from '../hooks/useQueries';
-import { Product, ProductForm as ProductFormType } from '../backend';
+  useToggleOutOfStock,
+} from "../hooks/useQueries";
+import { Product, ProductForm, CustomerType, ExternalBlob } from "../backend";
+import ProductCard from "../components/ProductCard";
+import ProductFormComponent from "../components/ProductForm";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Plus, Package } from "lucide-react";
+import { toast } from "sonner";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { ProductFormData } from "../components/ProductForm";
 
 export default function CatalogManagementPage() {
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined);
+  const { identity } = useInternetIdentity();
+  const weaverId = identity?.getPrincipal().toString() ?? "";
 
   const { data: products = [], isLoading } = useGetMyProducts();
-  const addProductMutation = useAddProduct();
-  const updateProductMutation = useUpdateProduct();
-  const removeProductMutation = useRemoveProduct();
-  const updateQuantityMutation = useUpdateProductQuantity();
-  const toggleStockMutation = useToggleStockStatus();
+  const addProduct = useAddProduct();
+  const updateProduct = useUpdateProduct();
+  const removeProduct = useRemoveProduct();
+  const toggleStock = useToggleOutOfStock();
 
-  const handleAddProduct = () => {
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | undefined>(
+    undefined
+  );
+
+  const handleAdd = () => {
     setEditingProduct(undefined);
     setIsFormOpen(true);
   };
 
-  const handleEditProduct = (product: Product) => {
+  const handleEdit = (product: Product) => {
     setEditingProduct(product);
     setIsFormOpen(true);
   };
 
-  const handleSubmit = async (formData: ProductFormType) => {
+  const handleDelete = async (productId: bigint) => {
     try {
+      await removeProduct.mutateAsync(productId);
+      toast.success("Product removed.");
+    } catch {
+      toast.error("Failed to remove product.");
+    }
+  };
+
+  const handleToggleStock = async (productId: bigint) => {
+    try {
+      await toggleStock.mutateAsync(productId);
+      toast.success("Stock status updated.");
+    } catch {
+      toast.error("Failed to update stock status.");
+    }
+  };
+
+  const handleSubmit = async (data: ProductFormData) => {
+    try {
+      const images = data.images.map((img) => {
+        if (img instanceof ExternalBlob) return img;
+        return ExternalBlob.fromURL(img as string);
+      });
+
+      const form: ProductForm = {
+        name: data.name,
+        retailPrice: BigInt(data.retailPrice),
+        wholesalePrice: BigInt(data.wholesalePrice),
+        directPrice: BigInt(data.directPrice),
+        images,
+        description: data.description,
+        visibility: data.visibility,
+        availableQuantity: BigInt(data.availableQuantity),
+        madeToOrder: data.madeToOrder,
+        colors: data.colors,
+      };
+
       if (editingProduct) {
-        await updateProductMutation.mutateAsync({ id: editingProduct.id, form: formData });
+        await updateProduct.mutateAsync({ id: editingProduct.id, form });
+        toast.success("Product updated.");
       } else {
-        await addProductMutation.mutateAsync(formData);
+        await addProduct.mutateAsync(form);
+        toast.success("Product added.");
       }
       setIsFormOpen(false);
       setEditingProduct(undefined);
-    } catch (error) {
-      console.error('Failed to save product:', error);
+    } catch {
+      toast.error("Failed to save product.");
     }
   };
-
-  const handleDeleteProduct = async (id: bigint) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      await removeProductMutation.mutateAsync(id);
-    }
-  };
-
-  const handleUpdateQuantity = async (id: bigint, newQuantity: bigint) => {
-    await updateQuantityMutation.mutateAsync({ id, quantity: newQuantity });
-  };
-
-  const handleToggleStock = async (id: bigint, inStock: boolean) => {
-    await toggleStockMutation.mutateAsync({ id, inStock });
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading products...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      {/* Header with Add Product button — visible only to authenticated weavers */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Catalog Management</h1>
-          <p className="text-muted-foreground mt-1">Manage your product catalog</p>
+          <h1 className="text-2xl font-serif font-bold text-foreground">
+            My Catalog
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Manage your products and pricing
+          </p>
         </div>
-        <Button onClick={handleAddProduct}>
-          <Plus className="w-4 h-4 mr-2" />
+        <Button onClick={handleAdd} className="flex items-center gap-2">
+          <Plus className="w-4 h-4" />
           Add Product
         </Button>
       </div>
 
-      {products.length === 0 ? (
-        <div className="text-center py-16 bg-card border border-border rounded-2xl">
-          <div className="max-w-md mx-auto">
-            <h3 className="text-xl font-semibold text-foreground mb-2">No products yet</h3>
-            <p className="text-muted-foreground mb-6">
-              Start building your catalog by adding your first product.
-            </p>
-            <Button onClick={handleAddProduct}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Your First Product
-            </Button>
-          </div>
+      {/* Product grid */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="rounded-xl overflow-hidden border border-border"
+            >
+              <Skeleton className="h-52 w-full" />
+              <div className="p-4 space-y-2">
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : products.length === 0 ? (
+        <div className="text-center py-16">
+          <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground text-lg mb-4">
+            No products yet. Add your first product!
+          </p>
+          <Button onClick={handleAdd}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Product
+          </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {products.map((product) => (
             <ProductCard
               key={product.id.toString()}
               product={product}
-              onEdit={handleEditProduct}
-              onDelete={handleDeleteProduct}
-              onUpdateQuantity={handleUpdateQuantity}
+              customerType={CustomerType.retail}
+              weaverId={weaverId}
+              isOwner={true}
+              showOwnerControls={true}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
               onToggleStock={handleToggleStock}
             />
           ))}
         </div>
       )}
 
-      <ProductForm
+      {/* Product form dialog */}
+      <ProductFormComponent
         isOpen={isFormOpen}
         onClose={() => {
           setIsFormOpen(false);
           setEditingProduct(undefined);
         }}
         onSubmit={handleSubmit}
-        initialData={editingProduct}
-        isSubmitting={addProductMutation.isPending || updateProductMutation.isPending}
+        editingProduct={editingProduct}
+        isLoading={addProduct.isPending || updateProduct.isPending}
       />
     </div>
   );

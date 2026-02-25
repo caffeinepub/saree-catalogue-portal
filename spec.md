@@ -1,13 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Deploy the Weaver Catalog application to Internet Computer mainnet canister for production use.
+**Goal:** Make public catalog and product detail pages fully accessible without authentication, and hide owner-only controls (like the "Add Product" button) from customer-facing views.
 
 **Planned changes:**
-- Configure dfx.json with backend (Motoko) and frontend (React) canister definitions
-- Set up frontend build process to generate Candid declarations and canister ID environment variables
-- Ensure backend main.mo uses stable variables for state persistence across upgrades
-- Remove GitHub Pages deployment configuration (.github/workflows/deploy.yml and .nojekyll)
-- Update frontend routing and asset paths to use relative paths compatible with IC canister environment
+- Remove authentication guards from the router for public catalog and product detail pages so anonymous users are not redirected to login
+- Ensure backend queries for public catalog and product data allow anonymous callers without requiring authentication
+- Hide the "Add Product" button (and any other owner-only controls such as edit, delete, stock toggle) on the public/customer-facing catalog page
+- Retain all existing controls including the "Add Product" button on the weaver-facing catalog management page
 
-**User-visible outcome:** The application will be accessible on the Internet Computer mainnet with a canister URL, allowing users to access the weaving catalog and customer management features in production.
+**User-visible outcome:** Customers can visit shared catalog or product links directly without being prompted to log in, and will not see owner-only controls like the "Add Product" button on the catalog page.

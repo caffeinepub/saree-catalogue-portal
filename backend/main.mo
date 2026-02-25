@@ -1,6 +1,8 @@
 import List "mo:core/List";
 import Map "mo:core/Map";
 import Order "mo:core/Order";
+import Iter "mo:core/Iter";
+import Nat "mo:core/Nat";
 import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
 import Text "mo:core/Text";
@@ -8,22 +10,28 @@ import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 import MixinStorage "blob-storage/Mixin";
 import Storage "blob-storage/Storage";
-import Migration "migration";
 
-// Seamless persistence of state across upgrades
-(with migration = Migration.run)
+// Persistent data migration across upgrades
+
 actor {
   // State for core components
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
   include MixinStorage();
 
-  // Data types
+  type UserProfile = {
+    name : Text;
+  };
+
+  let userProfiles = Map.empty<Principal, UserProfile>();
+
   type WeaverProfile = {
     name : Text;
     logo : Storage.ExternalBlob;
     address : Text;
   };
+
+  let weaverProfiles = Map.empty<Principal, WeaverProfile>();
 
   type CustomerType = {
     #retail;
@@ -71,38 +79,44 @@ actor {
     id : Text;
     owner : Principal;
     name : Text;
+    businessName : ?Text;
+    contactNumber : Text;
+    addressLine1 : ?Text;
+    city : ?Text;
+    state : ?Text;
+    postalCode : ?Text;
     customerType : CustomerType;
-    contactDetails : Text;
   };
 
-  type UserProfile = {
+  type CustomerForm = {
     name : Text;
+    businessName : ?Text;
+    contactNumber : Text;
+    addressLine1 : ?Text;
+    city : ?Text;
+    state : ?Text;
+    postalCode : ?Text;
+    customerType : CustomerType;
   };
 
-  // Persistent data storage
-  var weaverProfiles : Map.Map<Principal, WeaverProfile> = Map.empty();
-  var products : Map.Map<Principal, Map.Map<Nat, Product>> = Map.empty();
-  var customerDetails : Map.Map<Text, Customer> = Map.empty();
-  var userProfiles : Map.Map<Principal, UserProfile> = Map.empty();
-  var productCounters : Map.Map<Principal, Nat> = Map.empty();
+  let products = Map.empty<Principal, Map.Map<Nat, Product>>();
+  let productCounters = Map.empty<Principal, Nat>();
 
-  // Helper for sorting products
   module Product {
     public func compare(product1 : Product, product2 : Product) : Order.Order {
       Text.compare(product1.name, product2.name);
     };
   };
 
-  // User profile management
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can access profiles");
+      Runtime.trap("Unauthorized: Only users can save profiles");
     };
     userProfiles.get(caller);
   };
 
   public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
-    if (caller != user and not (AccessControl.isAdmin(accessControlState, caller))) {
+    if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Can only view your own profile");
     };
     userProfiles.get(user);
@@ -115,7 +129,6 @@ actor {
     userProfiles.add(caller, profile);
   };
 
-  // Weaver profile management
   public shared ({ caller }) func createOrUpdateWeaverProfile(
     name : Text,
     logo : Storage.ExternalBlob,
@@ -237,26 +250,46 @@ actor {
     };
   };
 
-  public shared ({ caller }) func markOutOfStock(id : Nat) : async () {
+  public shared ({ caller }) func updateProductQuantity(productId : Nat, newQuantity : Nat) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can update stock status");
+      Runtime.trap("Unauthorized: Only users can update product quantity");
     };
 
     switch (products.get(caller)) {
       case (null) { Runtime.trap("Product does not exist") };
       case (?productMap) {
-        switch (productMap.get(id)) {
+        switch (productMap.get(productId)) {
           case (null) { Runtime.trap("Product does not exist") };
           case (?existingProduct) {
-            if (existingProduct.owner != caller and not (AccessControl.isAdmin(accessControlState, caller))) {
-              Runtime.trap("Unauthorized: You can only update your own products");
+            let updatedProduct : Product = {
+              existingProduct with availableQuantity = newQuantity;
             };
+            productMap.add(productId, updatedProduct);
+          };
+        };
+      };
+    };
+  };
 
-            let outOfStockProduct : Product = {
-              existingProduct with availableQuantity = 0;
+  public shared ({ caller }) func toggleOutOfStock(productId : Nat) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can toggle stock status");
+    };
+
+    switch (products.get(caller)) {
+      case (null) { Runtime.trap("Product does not exist") };
+      case (?productMap) {
+        switch (productMap.get(productId)) {
+          case (null) { Runtime.trap("Product does not exist") };
+          case (?existingProduct) {
+            let updatedProduct : Product = {
+              existingProduct with availableQuantity = if (existingProduct.availableQuantity == 0) {
+                1;
+              } else {
+                0;
+              };
             };
-
-            productMap.add(id, outOfStockProduct);
+            productMap.add(productId, updatedProduct);
           };
         };
       };
@@ -276,13 +309,11 @@ actor {
     };
   };
 
-  // Public function for shareable links
+  // No authentication for public product query
   public query func getPublicProduct(productId : Nat, owner : Principal) : async ?Product {
     switch (products.get(owner)) {
       case (null) { null };
-      case (?productMap) {
-        productMap.get(productId);
-      };
+      case (?productMap) { productMap.get(productId) };
     };
   };
 
@@ -297,6 +328,26 @@ actor {
         return productMap.values().toArray().sort();
       };
     };
+  };
+
+  public query func getPublicCatalogNonAuthenticated(weaverPrincipal : Principal, targetType : CustomerType) : async [Product] {
+    let filteredProducts = List.empty<Product>();
+
+    switch (products.get(weaverPrincipal)) {
+      case (null) { return [] };
+      case (?productMap) {
+        productMap.values().forEach(func(product) {
+          switch (targetType, product.visibility) {
+            case (#retail, #retailOnly) { filteredProducts.add(product) };
+            case (#wholesale, #wholesaleOnly) { filteredProducts.add(product) };
+            case (_, #all) { filteredProducts.add(product) };
+            case (_) {};
+          };
+        });
+      };
+    };
+
+    filteredProducts.toArray().sort();
   };
 
   public query ({ caller }) func getCatalogByCustomerType(customerType : CustomerType) : async [Product] {
@@ -323,14 +374,11 @@ actor {
     filteredProducts.toArray().sort();
   };
 
-  public query ({ caller }) func getCatalogByWeaver(
+  // No authentication for public catalog query by weaver
+  public query func getCatalogByWeaver(
     weaverPrincipal : Principal,
     customerType : CustomerType,
   ) : async [Product] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view catalogs");
-    };
-
     let filteredProducts = List.empty<Product>();
 
     switch (products.get(weaverPrincipal)) {
@@ -350,36 +398,18 @@ actor {
     filteredProducts.toArray().sort();
   };
 
-  // Public catalog for shareable links
-  public query func getPublicCatalog(weaverPrincipal : Principal, targetType : CustomerType) : async [Product] {
-    let filteredProducts = List.empty<Product>();
+  let customerDetails = Map.empty<Text, Customer>();
 
-    switch (products.get(weaverPrincipal)) {
-      case (null) { return [] };
-      case (?productMap) {
-        productMap.values().forEach(func(product) {
-          switch (targetType, product.visibility) {
-            case (#retail, #retailOnly) { filteredProducts.add(product) };
-            case (#wholesale, #wholesaleOnly) { filteredProducts.add(product) };
-            case (_, #all) { filteredProducts.add(product) };
-            case (_) {};
-          };
-        });
-      };
-    };
-
-    filteredProducts.toArray().sort();
-  };
-
-  // Customer management with ownership checks
   public shared ({ caller }) func addOrUpdateCustomer(
     id : Text,
-    name : Text,
-    customerType : CustomerType,
-    contactDetails : Text,
+    customerForm : CustomerForm
   ) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can add or update customer details");
+    };
+
+    if (customerForm.contactNumber.size() != 10 or not isNumeric(customerForm.contactNumber)) {
+      Runtime.trap("Invalid contact number: Must be exactly 10 digits");
     };
 
     switch (customerDetails.get(id)) {
@@ -394,11 +424,25 @@ actor {
     let customer : Customer = {
       id;
       owner = caller;
-      name;
-      customerType;
-      contactDetails;
+      name = customerForm.name;
+      businessName = customerForm.businessName;
+      contactNumber = customerForm.contactNumber;
+      addressLine1 = customerForm.addressLine1;
+      city = customerForm.city;
+      state = customerForm.state;
+      postalCode = customerForm.postalCode;
+      customerType = customerForm.customerType;
     };
     customerDetails.add(id, customer);
+  };
+
+  func isNumeric(s : Text) : Bool {
+    for (char in s.chars()) {
+      if (char < '0' or char > '9') {
+        return false;
+      };
+    };
+    true;
   };
 
   public query ({ caller }) func getCustomer(id : Text) : async ?Customer {

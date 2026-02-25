@@ -1,123 +1,248 @@
-import { useState } from 'react';
-import { X } from 'lucide-react';
-import { CustomerType } from '../backend';
-import { useAddOrUpdateCustomer } from '../hooks/useQueries';
-import type { Customer } from '../backend';
+import React, { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Customer, CustomerType } from '../backend';
 
 interface CustomerFormProps {
-  customer?: Customer;
-  onClose: () => void;
-  onSuccess: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (data: CustomerFormData) => void;
+  editingCustomer?: Customer | null;
+  isLoading?: boolean;
 }
 
-export default function CustomerForm({ customer, onClose, onSuccess }: CustomerFormProps) {
-  const [name, setName] = useState(customer?.name || '');
-  const [customerType, setCustomerType] = useState<CustomerType>(
-    customer?.customerType || CustomerType.retail
-  );
-  const [contactDetails, setContactDetails] = useState(customer?.contactDetails || '');
+export interface CustomerFormData {
+  name: string;
+  businessName: string;
+  contactNumber: string;
+  addressLine1: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  customerType: CustomerType;
+}
 
-  const addOrUpdateCustomer = useAddOrUpdateCustomer();
-  const isEditing = !!customer;
+const defaultFormData: CustomerFormData = {
+  name: '',
+  businessName: '',
+  contactNumber: '',
+  addressLine1: '',
+  city: '',
+  state: '',
+  postalCode: '',
+  customerType: CustomerType.retail,
+};
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+export default function CustomerForm({
+  open,
+  onOpenChange,
+  onSubmit,
+  editingCustomer,
+  isLoading = false,
+}: CustomerFormProps) {
+  const [formData, setFormData] = useState<CustomerFormData>(defaultFormData);
+  const [errors, setErrors] = useState<Partial<Record<keyof CustomerFormData, string>>>({});
 
-    try {
-      await addOrUpdateCustomer.mutateAsync({
-        id: customer?.id || `customer-${Date.now()}`,
-        name,
-        customerType,
-        contactDetails,
+  useEffect(() => {
+    if (editingCustomer) {
+      setFormData({
+        name: editingCustomer.name || '',
+        businessName: editingCustomer.businessName || '',
+        contactNumber: editingCustomer.contactNumber || '',
+        addressLine1: editingCustomer.addressLine1 || '',
+        city: editingCustomer.city || '',
+        state: editingCustomer.state || '',
+        postalCode: editingCustomer.postalCode || '',
+        customerType: editingCustomer.customerType,
       });
-      onSuccess();
-      onClose();
-    } catch (error) {
-      console.error('Error saving customer:', error);
-      alert('Failed to save customer. Please try again.');
+    } else {
+      setFormData(defaultFormData);
+    }
+    setErrors({});
+  }, [editingCustomer, open]);
+
+  const validate = (): boolean => {
+    const newErrors: Partial<Record<keyof CustomerFormData, string>> = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = 'Customer name is required.';
+    }
+
+    if (!formData.contactNumber.trim()) {
+      newErrors.contactNumber = 'Contact number is required.';
+    } else if (!/^\d{10}$/.test(formData.contactNumber.trim())) {
+      newErrors.contactNumber = 'Contact number must be exactly 10 numeric digits.';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validate()) return;
+    onSubmit(formData);
+  };
+
+  const handleChange = (field: keyof CustomerFormData, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-card border border-border rounded-2xl shadow-2xl max-w-lg w-full p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-serif font-bold text-foreground">
-            {isEditing ? 'Edit Customer' : 'Add New Customer'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-accent rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg bg-white dark:bg-card max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{editingCustomer ? 'Edit Customer' : 'Add Customer'}</DialogTitle>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-foreground mb-2">
-              Customer Name
-            </label>
-            <input
+          {/* Customer Name */}
+          <div className="space-y-1">
+            <Label htmlFor="name">
+              Customer Name <span className="text-destructive">*</span>
+            </Label>
+            <Input
               id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={formData.name}
+              onChange={(e) => handleChange('name', e.target.value)}
               placeholder="Enter customer name"
-              className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              required
+              disabled={isLoading}
+            />
+            {errors.name && (
+              <p className="text-xs text-destructive">{errors.name}</p>
+            )}
+          </div>
+
+          {/* Business Name */}
+          <div className="space-y-1">
+            <Label htmlFor="businessName">Business Name</Label>
+            <Input
+              id="businessName"
+              value={formData.businessName}
+              onChange={(e) => handleChange('businessName', e.target.value)}
+              placeholder="Enter business name (optional)"
+              disabled={isLoading}
             />
           </div>
 
-          <div>
-            <label htmlFor="customerType" className="block text-sm font-medium text-foreground mb-2">
-              Customer Type
-            </label>
-            <select
-              id="customerType"
-              value={customerType}
-              onChange={(e) => setCustomerType(e.target.value as CustomerType)}
-              className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          {/* Contact Number */}
+          <div className="space-y-1">
+            <Label htmlFor="contactNumber">
+              Contact Number <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="contactNumber"
+              value={formData.contactNumber}
+              onChange={(e) => handleChange('contactNumber', e.target.value.replace(/\D/g, '').slice(0, 10))}
+              placeholder="10-digit mobile number"
+              maxLength={10}
+              disabled={isLoading}
+            />
+            {errors.contactNumber && (
+              <p className="text-xs text-destructive">{errors.contactNumber}</p>
+            )}
+          </div>
+
+          {/* Customer Type */}
+          <div className="space-y-1">
+            <Label htmlFor="customerType">Customer Type</Label>
+            <Select
+              value={formData.customerType}
+              onValueChange={(val) => handleChange('customerType', val as CustomerType)}
+              disabled={isLoading}
             >
-              <option value={CustomerType.retail}>Retail</option>
-              <option value={CustomerType.wholesale}>Wholesale</option>
-              <option value={CustomerType.direct}>Direct</option>
-            </select>
+              <SelectTrigger id="customerType" className="bg-white dark:bg-card">
+                <SelectValue placeholder="Select customer type" />
+              </SelectTrigger>
+              <SelectContent className="bg-white dark:bg-card">
+                <SelectItem value={CustomerType.retail}>Retail</SelectItem>
+                <SelectItem value={CustomerType.wholesale}>Wholesale</SelectItem>
+                <SelectItem value={CustomerType.direct}>Direct</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          <div>
-            <label htmlFor="contactDetails" className="block text-sm font-medium text-foreground mb-2">
-              Contact Details
-            </label>
-            <textarea
-              id="contactDetails"
-              value={contactDetails}
-              onChange={(e) => setContactDetails(e.target.value)}
-              placeholder="Phone, email, address..."
-              rows={4}
-              className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
-              required
+          {/* Address Line 1 */}
+          <div className="space-y-1">
+            <Label htmlFor="addressLine1">Address Line 1</Label>
+            <Input
+              id="addressLine1"
+              value={formData.addressLine1}
+              onChange={(e) => handleChange('addressLine1', e.target.value)}
+              placeholder="Street address (optional)"
+              disabled={isLoading}
             />
           </div>
 
-          <div className="flex gap-3 pt-4">
-            <button
+          {/* City & State */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="city">City</Label>
+              <Input
+                id="city"
+                value={formData.city}
+                onChange={(e) => handleChange('city', e.target.value)}
+                placeholder="City"
+                disabled={isLoading}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="state">State</Label>
+              <Input
+                id="state"
+                value={formData.state}
+                onChange={(e) => handleChange('state', e.target.value)}
+                placeholder="State"
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+
+          {/* Postal Code */}
+          <div className="space-y-1">
+            <Label htmlFor="postalCode">Postal Code</Label>
+            <Input
+              id="postalCode"
+              value={formData.postalCode}
+              onChange={(e) => handleChange('postalCode', e.target.value)}
+              placeholder="Postal code (optional)"
+              disabled={isLoading}
+            />
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button
               type="button"
-              onClick={onClose}
-              className="flex-1 px-6 py-3 rounded-lg border border-input bg-background text-foreground font-medium hover:bg-accent transition-colors"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isLoading}
             >
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={addOrUpdateCustomer.isPending}
-              className="flex-1 bg-gradient-to-r from-[#E07A5F] to-[#C1403D] hover:from-[#C1403D] hover:to-[#E07A5F] text-white font-medium py-3 rounded-lg transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {addOrUpdateCustomer.isPending ? 'Saving...' : isEditing ? 'Update Customer' : 'Add Customer'}
-            </button>
-          </div>
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? 'Saving...' : editingCustomer ? 'Update Customer' : 'Add Customer'}
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

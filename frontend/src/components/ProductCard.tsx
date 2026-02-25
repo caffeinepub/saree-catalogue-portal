@@ -1,190 +1,250 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Edit, Trash2, Share2, Plus, Minus, Image as ImageIcon } from 'lucide-react';
-import { Product } from '../backend';
-import { toast } from 'sonner';
-import CustomerTypeDialog from './CustomerTypeDialog';
+import { useState } from "react";
+import { Product, CustomerType } from "../backend";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Package,
+  Edit,
+  Trash2,
+  ToggleLeft,
+  ToggleRight,
+  Share2,
+  Copy,
+  ExternalLink,
+} from "lucide-react";
+import { toast } from "sonner";
 
 interface ProductCardProps {
   product: Product;
-  onEdit: (product: Product) => void;
-  onDelete: (id: bigint) => void;
-  onUpdateQuantity: (id: bigint, newQuantity: bigint) => void;
-  onToggleStock: (id: bigint, inStock: boolean) => void;
+  customerType?: CustomerType;
+  weaverId?: string;
+  isOwner?: boolean;
+  /** When false, hides all owner-only controls (edit, delete, stock toggle, share). Defaults to same as isOwner. */
+  showOwnerControls?: boolean;
+  onEdit?: (product: Product) => void;
+  onDelete?: (productId: bigint) => void;
+  onToggleStock?: (productId: bigint) => void;
 }
 
-export default function ProductCard({ product, onEdit, onDelete, onUpdateQuantity, onToggleStock }: ProductCardProps) {
+function formatPrice(price: bigint): string {
+  return `₹${Number(price).toLocaleString("en-IN")}`;
+}
+
+export default function ProductCard({
+  product,
+  customerType,
+  weaverId,
+  isOwner = false,
+  showOwnerControls,
+  onEdit,
+  onDelete,
+  onToggleStock,
+}: ProductCardProps) {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  const inStock = product.availableQuantity > 0n;
 
-  const handleSelectCustomerType = (customerType: 'retail' | 'wholesale' | 'direct') => {
-    const shareUrl = `${window.location.origin}/public/${product.owner.toString()}/${customerType}`;
-    navigator.clipboard.writeText(shareUrl);
-    toast.success('Catalog link copied to clipboard!');
-  };
-
-  const handleIncrement = () => {
-    const newQuantity = product.availableQuantity + 1n;
-    onUpdateQuantity(product.id, newQuantity);
-  };
-
-  const handleDecrement = () => {
-    if (product.availableQuantity > 0n) {
-      const newQuantity = product.availableQuantity - 1n;
-      onUpdateQuantity(product.id, newQuantity);
+  // Load first image URL
+  const firstImage = product.images?.[0];
+  if (firstImage && !imageLoaded) {
+    const url = firstImage.getDirectURL();
+    if (url && url !== imageUrl) {
+      setImageUrl(url);
+      setImageLoaded(true);
     }
+  }
+
+  const inStock = product.availableQuantity > 0n || product.madeToOrder;
+
+  const displayPrice = customerType
+    ? customerType === CustomerType.wholesale
+      ? product.wholesalePrice
+      : customerType === CustomerType.direct
+      ? product.directPrice
+      : product.retailPrice
+    : product.retailPrice;
+
+  // Owner controls are shown only when isOwner is true AND showOwnerControls is not explicitly false
+  const canShowOwnerControls =
+    isOwner && (showOwnerControls === undefined ? true : showOwnerControls);
+
+  const getProductUrl = (ct: CustomerType) => {
+    const base = window.location.origin + window.location.pathname;
+    const ctStr =
+      ct === CustomerType.wholesale
+        ? "wholesale"
+        : ct === CustomerType.direct
+        ? "direct"
+        : "retail";
+    return `${base}#/public-product/${weaverId}/${product.id}/${ctStr}`;
   };
 
-  const handleStockToggle = (checked: boolean) => {
-    onToggleStock(product.id, checked);
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      toast.success(`${label} link copied!`);
+    });
   };
 
-  // Get the first image or show placeholder
-  const displayImage = product.images && product.images.length > 0 ? product.images[0] : null;
+  const shareLinks = [
+    { label: "Retail", type: CustomerType.retail },
+    { label: "Wholesale", type: CustomerType.wholesale },
+    { label: "Direct", type: CustomerType.direct },
+  ];
 
   return (
     <>
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-        <div className="aspect-square relative overflow-hidden bg-gray-100">
-          {displayImage ? (
+      <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
+        {/* Product image */}
+        <div className="relative h-52 bg-muted flex items-center justify-center overflow-hidden">
+          {imageUrl ? (
             <img
-              src={displayImage.getDirectURL()}
+              src={imageUrl}
               alt={product.name}
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-muted">
-              <ImageIcon className="w-16 h-16 text-muted-foreground" />
-            </div>
+            <Package className="w-12 h-12 text-muted-foreground" />
           )}
-          {product.madeToOrder && (
-            <Badge className="absolute top-2 right-2 bg-accent text-accent-foreground">
-              Made to Order
+          <div className="absolute top-2 right-2">
+            <Badge
+              variant={inStock ? "default" : "secondary"}
+              className="text-xs"
+            >
+              {product.madeToOrder
+                ? "Made to Order"
+                : inStock
+                ? "In Stock"
+                : "Out of Stock"}
             </Badge>
-          )}
-          {product.images && product.images.length > 1 && (
-            <Badge className="absolute top-2 left-2 bg-black/70 text-white">
-              {product.images.length} photos
-            </Badge>
-          )}
+          </div>
         </div>
 
-        <CardContent className="p-4 space-y-3">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-lg truncate">{product.name}</h3>
-              <p className="text-sm text-muted-foreground">ID: {product.id.toString()}</p>
-            </div>
-            <Badge variant={inStock ? 'default' : 'destructive'}>
-              {inStock ? 'In Stock' : 'Out of Stock'}
-            </Badge>
-          </div>
+        {/* Product info */}
+        <div className="p-4 flex flex-col flex-1">
+          <h3 className="font-serif font-semibold text-foreground text-base mb-1 line-clamp-2">
+            {product.name}
+          </h3>
 
           {product.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
+            <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+              {product.description}
+            </p>
           )}
 
-          <div className="space-y-1 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Retail:</span>
-              <span className="font-medium">₹{product.retailPrice.toString()}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Wholesale:</span>
-              <span className="font-medium">₹{product.wholesalePrice.toString()}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Direct:</span>
-              <span className="font-medium">₹{product.directPrice.toString()}</span>
-            </div>
-          </div>
+          <div className="mt-auto">
+            <p className="text-lg font-bold text-primary">
+              {formatPrice(displayPrice)}
+            </p>
 
-          {product.colors && product.colors.length > 0 && (
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Available Colors:</p>
-              <div className="flex flex-wrap gap-1">
-                {product.colors.map((color) => (
+            {/* Color swatches */}
+            {product.colors && product.colors.length > 0 && (
+              <div className="flex gap-1 mt-2 flex-wrap">
+                {product.colors.slice(0, 5).map((color, idx) => (
                   <div
-                    key={color.hex}
-                    className="w-6 h-6 rounded-full border border-gray-300"
+                    key={idx}
+                    className="w-4 h-4 rounded-full border border-border"
                     style={{ backgroundColor: color.hex }}
                     title={color.name}
                   />
                 ))}
+                {product.colors.length > 5 && (
+                  <span className="text-xs text-muted-foreground self-center">
+                    +{product.colors.length - 5}
+                  </span>
+                )}
               </div>
-            </div>
-          )}
+            )}
 
-          <div className="flex items-center justify-between pt-2 border-t">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Quantity:</span>
-              <div className="flex items-center gap-1">
+            {/* Owner controls — hidden for public/customer views */}
+            {canShowOwnerControls && (
+              <div className="flex gap-2 mt-3 flex-wrap">
                 <Button
-                  size="icon"
+                  size="sm"
                   variant="outline"
-                  className="h-7 w-7"
-                  onClick={handleDecrement}
-                  disabled={product.availableQuantity === 0n}
+                  onClick={() => onEdit?.(product)}
+                  className="flex-1 min-w-0"
                 >
-                  <Minus className="h-3 w-3" />
+                  <Edit className="w-3.5 h-3.5 mr-1" />
+                  Edit
                 </Button>
-                <span className="text-sm font-medium min-w-[2rem] text-center">
-                  {product.availableQuantity.toString()}
-                </span>
                 <Button
-                  size="icon"
+                  size="sm"
                   variant="outline"
-                  className="h-7 w-7"
-                  onClick={handleIncrement}
+                  onClick={() => onToggleStock?.(product.id)}
+                  className="flex-1 min-w-0"
                 >
-                  <Plus className="h-3 w-3" />
+                  {inStock ? (
+                    <ToggleRight className="w-3.5 h-3.5 mr-1" />
+                  ) : (
+                    <ToggleLeft className="w-3.5 h-3.5 mr-1" />
+                  )}
+                  {inStock ? "Mark OOS" : "In Stock"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShareDialogOpen(true)}
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => onDelete?.(product.id)}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
                 </Button>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id={`stock-${product.id}`}
-                checked={inStock}
-                onCheckedChange={handleStockToggle}
-              />
-              <label htmlFor={`stock-${product.id}`} className="text-sm cursor-pointer">
-                In Stock
-              </label>
-            </div>
+            )}
           </div>
+        </div>
+      </div>
 
-          <div className="text-xs text-muted-foreground">
-            Visibility:{' '}
-            {product.visibility === 'all'
-              ? 'All Customers'
-              : product.visibility === 'retailOnly'
-              ? 'Retail Only'
-              : 'Wholesale Only'}
-          </div>
-        </CardContent>
-
-        <CardFooter className="p-4 pt-0 flex gap-2">
-          <Button variant="outline" size="sm" className="flex-1" onClick={() => onEdit(product)}>
-            <Edit className="w-4 h-4 mr-1" />
-            Edit
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setShareDialogOpen(true)}>
-            <Share2 className="w-4 h-4" />
-          </Button>
-          <Button variant="destructive" size="sm" onClick={() => onDelete(product.id)}>
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        </CardFooter>
-      </Card>
-
-      <CustomerTypeDialog
-        open={shareDialogOpen}
-        onOpenChange={setShareDialogOpen}
-        onSelectCustomerType={handleSelectCustomerType}
-      />
+      {/* Share dialog — only rendered for owner */}
+      {canShowOwnerControls && (
+        <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+          <DialogContent className="bg-white dark:bg-card max-w-md">
+            <DialogHeader>
+              <DialogTitle>Share Product Link</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 mt-2">
+              {shareLinks.map(({ label, type }) => {
+                const url = getProductUrl(type);
+                return (
+                  <div
+                    key={label}
+                    className="flex items-center gap-2 p-3 rounded-lg border border-border bg-muted/30"
+                  >
+                    <span className="text-sm font-medium text-foreground flex-1 min-w-0">
+                      {label}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => copyToClipboard(url, label)}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => window.open(url, "_blank")}
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }

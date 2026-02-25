@@ -1,118 +1,139 @@
-import { useState, useRef } from 'react';
-import { Upload, X, Loader2 } from 'lucide-react';
-import { ExternalBlob } from '../backend';
+import React, { useState, useRef, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Upload, X, Loader2 } from "lucide-react";
+import { ExternalBlob } from "../backend";
 
 interface LogoUploadProps {
-  currentLogo?: ExternalBlob;
-  onLogoChange: (logo: ExternalBlob) => void;
+  currentLogo?: ExternalBlob | null;
+  onLogoChange: (logo: ExternalBlob | null) => void;
 }
 
 export default function LogoUpload({ currentLogo, onLogoChange }: LogoUploadProps) {
-  const [preview, setPreview] = useState<string | null>(currentLogo?.getDirectURL() || null);
-  const [isDragging, setIsDragging] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = async (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
-      return;
+  // Update preview when currentLogo prop changes (e.g., after fetching saved profile)
+  useEffect(() => {
+    if (currentLogo) {
+      setPreview(currentLogo.getDirectURL());
+    } else {
+      setPreview(null);
     }
+  }, [currentLogo]);
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const result = e.target?.result;
-      if (result instanceof ArrayBuffer) {
-        const bytes = new Uint8Array(result);
-        const blob = ExternalBlob.fromBytes(bytes).withUploadProgress((percentage) => {
-          setUploadProgress(percentage);
-        });
-        
-        setPreview(URL.createObjectURL(file));
-        onLogoChange(blob);
-        setUploadProgress(0);
-      }
-    };
-    reader.readAsArrayBuffer(file);
+  const handleFileSelect = async (file: File) => {
+    if (!file.type.startsWith("image/")) return;
+
+    setUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      const blob = ExternalBlob.fromBytes(uint8Array).withUploadProgress(
+        (percentage) => setUploadProgress(percentage)
+      );
+
+      // Show local preview immediately
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+
+      onLogoChange(blob);
+    } catch (error) {
+      console.error("Failed to process logo:", error);
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(false);
     const file = e.dataTransfer.files[0];
     if (file) handleFileSelect(file);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-
-  const handleClick = () => {
-    fileInputRef.current?.click();
-  };
-
   const handleRemove = () => {
     setPreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    onLogoChange(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-foreground">Business Logo</label>
-      
       {preview ? (
-        <div className="relative w-32 h-32 rounded-lg overflow-hidden border-2 border-border">
-          <img src={preview} alt="Logo preview" className="w-full h-full object-cover" />
+        <div className="relative w-24 h-24">
+          <img
+            src={preview}
+            alt="Logo preview"
+            className="w-24 h-24 rounded-full object-cover border-2 border-border"
+          />
           <button
             type="button"
             onClick={handleRemove}
-            className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 transition-colors"
+            className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 hover:bg-destructive/90"
           >
-            <X className="w-4 h-4" />
+            <X className="h-3 w-3" />
           </button>
-          {uploadProgress > 0 && uploadProgress < 100 && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-              <div className="text-white text-sm">{uploadProgress}%</div>
-            </div>
-          )}
         </div>
       ) : (
         <div
-          onClick={handleClick}
           onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          className={`w-full h-40 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${
-            isDragging
-              ? 'border-primary bg-primary/5'
-              : 'border-border hover:border-primary hover:bg-accent'
-          }`}
+          onDragOver={(e) => e.preventDefault()}
+          className="w-24 h-24 rounded-full border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-accent/50 transition-colors"
+          onClick={() => fileInputRef.current?.click()}
         >
-          <Upload className="w-10 h-10 text-muted-foreground mb-2" />
-          <p className="text-sm text-muted-foreground text-center px-4">
-            Click to upload or drag and drop
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 5MB</p>
+          {uploading ? (
+            <div className="flex flex-col items-center gap-1">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <span className="text-xs text-muted-foreground">{uploadProgress}%</span>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-1">
+              <Upload className="h-5 w-5 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground text-center px-1">Upload Logo</span>
+            </div>
+          )}
         </div>
       )}
-      
+
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) handleFileSelect(file);
         }}
-        className="hidden"
       />
+
+      {!preview && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+        >
+          {uploading ? (
+            <>
+              <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+              Uploading... {uploadProgress}%
+            </>
+          ) : (
+            <>
+              <Upload className="mr-2 h-3 w-3" />
+              Choose Logo
+            </>
+          )}
+        </Button>
+      )}
     </div>
   );
 }

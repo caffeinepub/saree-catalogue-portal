@@ -14,26 +14,32 @@ export class ExternalBlob {
     static fromBytes(blob: Uint8Array<ArrayBuffer>): ExternalBlob;
     withUploadProgress(onProgress: (percentage: number) => void): ExternalBlob;
 }
-export interface Product {
-    id: bigint;
-    retailPrice: bigint;
-    owner: Principal;
-    availableQuantity: bigint;
-    name: string;
-    wholesalePrice: bigint;
-    description: string;
-    madeToOrder: boolean;
-    directPrice: bigint;
-    colors: Array<Color>;
-    visibility: ProductVisibility;
-    images: Array<ExternalBlob>;
-}
 export interface Customer {
     id: string;
     customerType: CustomerType;
     owner: Principal;
+    city?: string;
+    postalCode?: string;
     name: string;
-    contactDetails: string;
+    businessName?: string;
+    state?: string;
+    addressLine1?: string;
+    contactNumber: string;
+}
+export interface WeaverProfile {
+    logo: ExternalBlob;
+    name: string;
+    address: string;
+}
+export interface CustomerForm {
+    customerType: CustomerType;
+    city?: string;
+    postalCode?: string;
+    name: string;
+    businessName?: string;
+    state?: string;
+    addressLine1?: string;
+    contactNumber: string;
 }
 export interface Color {
     hex: string;
@@ -51,10 +57,19 @@ export interface ProductForm {
     visibility: ProductVisibility;
     images: Array<ExternalBlob>;
 }
-export interface WeaverProfile {
-    logo: ExternalBlob;
+export interface Product {
+    id: bigint;
+    retailPrice: bigint;
+    owner: Principal;
+    availableQuantity: bigint;
     name: string;
-    address: string;
+    wholesalePrice: bigint;
+    description: string;
+    madeToOrder: boolean;
+    directPrice: bigint;
+    colors: Array<Color>;
+    visibility: ProductVisibility;
+    images: Array<ExternalBlob>;
 }
 export interface UserProfile {
     name: string;
@@ -75,7 +90,7 @@ export enum UserRole {
     guest = "guest"
 }
 export interface backendInterface {
-    addOrUpdateCustomer(id: string, name: string, customerType: CustomerType, contactDetails: string): Promise<void>;
+    addOrUpdateCustomer(id: string, customerForm: CustomerForm): Promise<void>;
     addProduct(form: ProductForm): Promise<bigint>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     createOrUpdateWeaverProfile(name: string, logo: ExternalBlob, address: string): Promise<void>;
@@ -88,13 +103,14 @@ export interface backendInterface {
     getCustomer(id: string): Promise<Customer | null>;
     getMyProducts(): Promise<Array<Product>>;
     getProduct(productId: bigint, owner: Principal): Promise<Product | null>;
-    getPublicCatalog(weaverPrincipal: Principal, targetType: CustomerType): Promise<Array<Product>>;
+    getPublicCatalogNonAuthenticated(weaverPrincipal: Principal, targetType: CustomerType): Promise<Array<Product>>;
     getPublicProduct(productId: bigint, owner: Principal): Promise<Product | null>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
-    markOutOfStock(id: bigint): Promise<void>;
     removeCustomer(id: string): Promise<void>;
     removeProduct(id: bigint): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    toggleOutOfStock(productId: bigint): Promise<void>;
     updateProduct(id: bigint, form: ProductForm): Promise<void>;
+    updateProductQuantity(productId: bigint, newQuantity: bigint): Promise<void>;
 }

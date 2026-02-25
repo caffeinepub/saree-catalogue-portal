@@ -1,77 +1,68 @@
-import React from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Users, Building2, UserCheck } from 'lucide-react';
+import { Users, Store, Handshake } from 'lucide-react';
 
 interface CustomerTypeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSelectCustomerType: (customerType: 'retail' | 'wholesale' | 'direct') => void;
+  onSelect: (customerType: string) => void;
+  title?: string;
+  description?: string;
 }
+
+const customerTypes = [
+  {
+    value: 'retail',
+    label: 'Retail',
+    description: 'Individual buyers at retail prices',
+    icon: Store,
+  },
+  {
+    value: 'wholesale',
+    label: 'Wholesale',
+    description: 'Bulk buyers at wholesale prices',
+    icon: Users,
+  },
+  {
+    value: 'direct',
+    label: 'Direct',
+    description: 'Direct customers at special prices',
+    icon: Handshake,
+  },
+];
 
 export default function CustomerTypeDialog({
   open,
   onOpenChange,
-  onSelectCustomerType,
+  onSelect,
+  title = 'Select Customer Type',
+  description = 'Choose the customer type for this link',
 }: CustomerTypeDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-white">
+      <DialogContent className="sm:max-w-sm bg-white dark:bg-card">
         <DialogHeader>
-          <DialogTitle>Select Customer Type</DialogTitle>
-          <DialogDescription>
-            Choose the customer type for the shareable link. The link will display pricing specific to the selected customer type.
-          </DialogDescription>
+          <DialogTitle className="font-serif">{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <div className="grid gap-3 py-4">
-          <Button
-            variant="outline"
-            className="h-auto py-4 px-4 flex items-start gap-3 hover:bg-primary/5 hover:border-primary"
-            onClick={() => {
-              onSelectCustomerType('retail');
-              onOpenChange(false);
-            }}
-          >
-            <Users className="w-5 h-5 mt-0.5 text-primary" />
-            <div className="text-left flex-1">
-              <div className="font-semibold">Retail Customer</div>
-              <div className="text-xs text-muted-foreground">Individual buyers and end consumers</div>
-            </div>
-          </Button>
-          <Button
-            variant="outline"
-            className="h-auto py-4 px-4 flex items-start gap-3 hover:bg-primary/5 hover:border-primary"
-            onClick={() => {
-              onSelectCustomerType('wholesale');
-              onOpenChange(false);
-            }}
-          >
-            <Building2 className="w-5 h-5 mt-0.5 text-primary" />
-            <div className="text-left flex-1">
-              <div className="font-semibold">Wholesale Customer</div>
-              <div className="text-xs text-muted-foreground">Bulk buyers and resellers</div>
-            </div>
-          </Button>
-          <Button
-            variant="outline"
-            className="h-auto py-4 px-4 flex items-start gap-3 hover:bg-primary/5 hover:border-primary"
-            onClick={() => {
-              onSelectCustomerType('direct');
-              onOpenChange(false);
-            }}
-          >
-            <UserCheck className="w-5 h-5 mt-0.5 text-primary" />
-            <div className="text-left flex-1">
-              <div className="font-semibold">Direct Customer</div>
-              <div className="text-xs text-muted-foreground">Special pricing for direct relationships</div>
-            </div>
-          </Button>
+        <div className="flex flex-col gap-2 mt-2">
+          {customerTypes.map((type) => {
+            const Icon = type.icon;
+            return (
+              <Button
+                key={type.value}
+                variant="outline"
+                className="w-full justify-start gap-3 h-auto py-3 bg-white dark:bg-card hover:bg-muted"
+                onClick={() => onSelect(type.value)}
+              >
+                <Icon className="w-5 h-5 text-primary shrink-0" />
+                <div className="text-left">
+                  <div className="font-medium">{type.label}</div>
+                  <div className="text-xs text-muted-foreground">{type.description}</div>
+                </div>
+              </Button>
+            );
+          })}
         </div>
       </DialogContent>
     </Dialog>

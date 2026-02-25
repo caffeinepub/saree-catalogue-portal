@@ -1,81 +1,75 @@
-import { useNavigate } from '@tanstack/react-router';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { ArrowLeft, Store, Building2, User } from 'lucide-react';
-import ShareLinkCard from '../components/ShareLinkCard';
+import { useGetCallerProfile } from "../hooks/useQueries";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { CustomerType } from "../backend";
+import { buildCatalogShareUrl } from "../utils/urlParams";
+import ShareLinkCard from "../components/ShareLinkCard";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Share2, Info, ShoppingBag, Users, Truck } from "lucide-react";
 
 export default function ShareLinksPage() {
-  const navigate = useNavigate();
   const { identity } = useInternetIdentity();
+  const { isLoading } = useGetCallerProfile();
 
-  if (!identity) {
-    return (
-      <div className="container mx-auto px-4 py-16 text-center">
-        <p className="text-muted-foreground">Please login to view share links</p>
-      </div>
-    );
-  }
+  const weaverId = identity?.getPrincipal().toString() ?? "";
 
-  const weaverPrincipal = identity.getPrincipal().toString();
-  const baseUrl = window.location.origin;
-
-  const links = [
-    {
-      title: 'Retail Customers',
-      description: 'Share this link with your retail customers',
-      url: `${baseUrl}/#/catalog/${weaverPrincipal}/retail`,
-      icon: <Store className="w-6 h-6" />,
-    },
-    {
-      title: 'Wholesale Customers',
-      description: 'Share this link with your wholesale customers',
-      url: `${baseUrl}/#/catalog/${weaverPrincipal}/wholesale`,
-      icon: <Building2 className="w-6 h-6" />,
-    },
-    {
-      title: 'Direct Customers',
-      description: 'Share this link with your direct customers',
-      url: `${baseUrl}/#/catalog/${weaverPrincipal}/direct`,
-      icon: <User className="w-6 h-6" />,
-    },
-  ];
+  const retailUrl = buildCatalogShareUrl(weaverId, CustomerType.retail);
+  const wholesaleUrl = buildCatalogShareUrl(weaverId, CustomerType.wholesale);
+  const directUrl = buildCatalogShareUrl(weaverId, CustomerType.direct);
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <button
-        onClick={() => navigate({ to: '/' })}
-        className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back
-      </button>
-
+    <div className="max-w-2xl mx-auto py-8 px-4">
       <div className="mb-8">
-        <h1 className="text-3xl font-serif font-bold text-foreground mb-2">Share Your Catalog</h1>
-        <p className="text-muted-foreground">
-          Generate and share unique links for different customer types. Each link shows only the products visible to that customer type.
+        <h1 className="text-2xl font-serif font-bold text-foreground mb-1">
+          Share Your Catalog
+        </h1>
+        <p className="text-muted-foreground text-sm">
+          Share these links with your customers. Each link shows pricing
+          appropriate for that customer type.
         </p>
       </div>
 
-      <div className="space-y-6">
-        {links.map((link, index) => (
+      {isLoading ? (
+        <div className="space-y-4">
+          <Skeleton className="h-40 w-full rounded-xl" />
+          <Skeleton className="h-40 w-full rounded-xl" />
+          <Skeleton className="h-40 w-full rounded-xl" />
+        </div>
+      ) : (
+        <div className="space-y-4">
           <ShareLinkCard
-            key={index}
-            title={link.title}
-            description={link.description}
-            url={link.url}
-            icon={link.icon}
+            title="Retail Catalog"
+            description="Share with retail customers — shows retail pricing"
+            url={retailUrl}
+            icon={<ShoppingBag className="w-6 h-6" />}
           />
-        ))}
-      </div>
+          <ShareLinkCard
+            title="Wholesale Catalog"
+            description="Share with wholesale buyers — shows wholesale pricing"
+            url={wholesaleUrl}
+            icon={<Users className="w-6 h-6" />}
+          />
+          <ShareLinkCard
+            title="Direct Catalog"
+            description="Share with direct customers — shows direct pricing"
+            url={directUrl}
+            icon={<Truck className="w-6 h-6" />}
+          />
+        </div>
+      )}
 
-      <div className="mt-8 p-6 bg-muted/50 border border-border rounded-xl">
-        <h3 className="font-serif font-semibold text-foreground mb-2">How it works</h3>
-        <ul className="space-y-2 text-sm text-muted-foreground">
-          <li>• Each link is unique to your account and customer type</li>
-          <li>• Links work without requiring customers to log in</li>
-          <li>• Products are filtered based on their visibility settings</li>
-          <li>• Links remain active permanently</li>
-        </ul>
+      <div className="mt-8 p-4 rounded-xl border border-border bg-muted/30 flex gap-3">
+        <Info className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+        <div className="text-sm text-muted-foreground">
+          <p className="font-medium text-foreground mb-1">
+            Sharing individual products
+          </p>
+          <p>
+            You can also share links to individual products. Go to your{" "}
+            <strong>Catalog</strong> page, click the{" "}
+            <Share2 className="w-3.5 h-3.5 inline" /> share icon on any product
+            card to get product-specific links for each customer type.
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -24,6 +24,16 @@ export const CustomerType = IDL.Variant({
   'direct' : IDL.Null,
   'wholesale' : IDL.Null,
 });
+export const CustomerForm = IDL.Record({
+  'customerType' : CustomerType,
+  'city' : IDL.Opt(IDL.Text),
+  'postalCode' : IDL.Opt(IDL.Text),
+  'name' : IDL.Text,
+  'businessName' : IDL.Opt(IDL.Text),
+  'state' : IDL.Opt(IDL.Text),
+  'addressLine1' : IDL.Opt(IDL.Text),
+  'contactNumber' : IDL.Text,
+});
 export const Color = IDL.Record({ 'hex' : IDL.Text, 'name' : IDL.Text });
 export const ProductVisibility = IDL.Variant({
   'all' : IDL.Null,
@@ -52,8 +62,13 @@ export const Customer = IDL.Record({
   'id' : IDL.Text,
   'customerType' : CustomerType,
   'owner' : IDL.Principal,
+  'city' : IDL.Opt(IDL.Text),
+  'postalCode' : IDL.Opt(IDL.Text),
   'name' : IDL.Text,
-  'contactDetails' : IDL.Text,
+  'businessName' : IDL.Opt(IDL.Text),
+  'state' : IDL.Opt(IDL.Text),
+  'addressLine1' : IDL.Opt(IDL.Text),
+  'contactNumber' : IDL.Text,
 });
 export const WeaverProfile = IDL.Record({
   'logo' : ExternalBlob,
@@ -104,11 +119,7 @@ export const idlService = IDL.Service({
     ),
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-  'addOrUpdateCustomer' : IDL.Func(
-      [IDL.Text, IDL.Text, CustomerType, IDL.Text],
-      [],
-      [],
-    ),
+  'addOrUpdateCustomer' : IDL.Func([IDL.Text, CustomerForm], [], []),
   'addProduct' : IDL.Func([ProductForm], [IDL.Nat], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'createOrUpdateWeaverProfile' : IDL.Func(
@@ -137,7 +148,7 @@ export const idlService = IDL.Service({
       [IDL.Opt(Product)],
       ['query'],
     ),
-  'getPublicCatalog' : IDL.Func(
+  'getPublicCatalogNonAuthenticated' : IDL.Func(
       [IDL.Principal, CustomerType],
       [IDL.Vec(Product)],
       ['query'],
@@ -153,11 +164,12 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
-  'markOutOfStock' : IDL.Func([IDL.Nat], [], []),
   'removeCustomer' : IDL.Func([IDL.Text], [], []),
   'removeProduct' : IDL.Func([IDL.Nat], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'toggleOutOfStock' : IDL.Func([IDL.Nat], [], []),
   'updateProduct' : IDL.Func([IDL.Nat, ProductForm], [], []),
+  'updateProductQuantity' : IDL.Func([IDL.Nat, IDL.Nat], [], []),
 });
 
 export const idlInitArgs = [];
@@ -178,6 +190,16 @@ export const idlFactory = ({ IDL }) => {
     'retail' : IDL.Null,
     'direct' : IDL.Null,
     'wholesale' : IDL.Null,
+  });
+  const CustomerForm = IDL.Record({
+    'customerType' : CustomerType,
+    'city' : IDL.Opt(IDL.Text),
+    'postalCode' : IDL.Opt(IDL.Text),
+    'name' : IDL.Text,
+    'businessName' : IDL.Opt(IDL.Text),
+    'state' : IDL.Opt(IDL.Text),
+    'addressLine1' : IDL.Opt(IDL.Text),
+    'contactNumber' : IDL.Text,
   });
   const Color = IDL.Record({ 'hex' : IDL.Text, 'name' : IDL.Text });
   const ProductVisibility = IDL.Variant({
@@ -207,8 +229,13 @@ export const idlFactory = ({ IDL }) => {
     'id' : IDL.Text,
     'customerType' : CustomerType,
     'owner' : IDL.Principal,
+    'city' : IDL.Opt(IDL.Text),
+    'postalCode' : IDL.Opt(IDL.Text),
     'name' : IDL.Text,
-    'contactDetails' : IDL.Text,
+    'businessName' : IDL.Opt(IDL.Text),
+    'state' : IDL.Opt(IDL.Text),
+    'addressLine1' : IDL.Opt(IDL.Text),
+    'contactNumber' : IDL.Text,
   });
   const WeaverProfile = IDL.Record({
     'logo' : ExternalBlob,
@@ -259,11 +286,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-    'addOrUpdateCustomer' : IDL.Func(
-        [IDL.Text, IDL.Text, CustomerType, IDL.Text],
-        [],
-        [],
-      ),
+    'addOrUpdateCustomer' : IDL.Func([IDL.Text, CustomerForm], [], []),
     'addProduct' : IDL.Func([ProductForm], [IDL.Nat], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'createOrUpdateWeaverProfile' : IDL.Func(
@@ -292,7 +315,7 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(Product)],
         ['query'],
       ),
-    'getPublicCatalog' : IDL.Func(
+    'getPublicCatalogNonAuthenticated' : IDL.Func(
         [IDL.Principal, CustomerType],
         [IDL.Vec(Product)],
         ['query'],
@@ -308,11 +331,12 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
-    'markOutOfStock' : IDL.Func([IDL.Nat], [], []),
     'removeCustomer' : IDL.Func([IDL.Text], [], []),
     'removeProduct' : IDL.Func([IDL.Nat], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'toggleOutOfStock' : IDL.Func([IDL.Nat], [], []),
     'updateProduct' : IDL.Func([IDL.Nat, ProductForm], [], []),
+    'updateProductQuantity' : IDL.Func([IDL.Nat, IDL.Nat], [], []),
   });
 };
 

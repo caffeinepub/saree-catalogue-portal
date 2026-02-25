@@ -1,16 +1,71 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useActor } from './useActor';
-import { Product, ProductForm, Customer, CustomerType, WeaverProfile, UserProfile } from '../backend';
-import { Principal } from '@dfinity/principal';
-import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useActor } from "./useActor";
+import {
+  Product,
+  ProductForm,
+  CustomerType,
+  CustomerForm,
+  Customer,
+  WeaverProfile,
+  UserProfile,
+  ExternalBlob,
+} from "../backend";
+import { Principal } from "@dfinity/principal";
+import { createActorWithConfig } from "../config";
+
+// ─── Public queries (no auth required, use anonymous actor directly) ──────────
+
+/**
+ * Fetch public catalog — creates its own anonymous actor, no auth dependency.
+ */
+export function useGetPublicCatalog(
+  weaverPrincipal: Principal | null,
+  customerType: CustomerType
+) {
+  return useQuery<Product[]>({
+    queryKey: ["publicCatalog", weaverPrincipal?.toString(), customerType],
+    queryFn: async () => {
+      if (!weaverPrincipal) return [];
+      const actor = await createActorWithConfig();
+      return actor.getPublicCatalogNonAuthenticated(weaverPrincipal, customerType);
+    },
+    enabled: !!weaverPrincipal,
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+/**
+ * Fetch a single public product — creates its own anonymous actor, no auth dependency.
+ */
+export function useGetPublicProduct(
+  weaverPrincipal: Principal | null,
+  productId: bigint
+) {
+  return useQuery<Product | null>({
+    queryKey: [
+      "publicProduct",
+      weaverPrincipal?.toString(),
+      productId.toString(),
+    ],
+    queryFn: async () => {
+      if (!weaverPrincipal) return null;
+      const actor = await createActorWithConfig();
+      return actor.getPublicProduct(productId, weaverPrincipal);
+    },
+    enabled: !!weaverPrincipal && productId > 0n,
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+// ─── Auth-required queries ────────────────────────────────────────────────────
 
 export function useGetCallerUserProfile() {
   const { actor, isFetching: actorFetching } = useActor();
 
   const query = useQuery<UserProfile | null>({
-    queryKey: ['currentUserProfile'],
+    queryKey: ["currentUserProfile"],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.getCallerUserProfile();
     },
     enabled: !!actor && !actorFetching,
@@ -30,42 +85,25 @@ export function useSaveCallerUserProfile() {
 
   return useMutation({
     mutationFn: async (profile: UserProfile) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.saveCallerUserProfile(profile);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });
-      toast.success('Profile saved successfully');
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to save profile: ${error.message}`);
+      queryClient.invalidateQueries({ queryKey: ["currentUserProfile"] });
     },
   });
 }
 
 export function useGetCallerProfile() {
-  const { actor, isFetching } = useActor();
+  const { actor, isFetching: actorFetching } = useActor();
 
   return useQuery<WeaverProfile | null>({
-    queryKey: ['weaverProfile'],
+    queryKey: ["callerProfile"],
     queryFn: async () => {
-      if (!actor) return null;
+      if (!actor) throw new Error("Actor not available");
       return actor.getCallerProfile();
     },
-    enabled: !!actor && !isFetching,
-  });
-}
-
-export function useWeaverProfile(weaverPrincipal: Principal | undefined) {
-  const { actor } = useActor();
-
-  return useQuery<WeaverProfile | null>({
-    queryKey: ['weaverProfile', weaverPrincipal?.toString()],
-    queryFn: async () => {
-      if (!actor || !weaverPrincipal) return null;
-      return actor.getCallerProfile();
-    },
-    enabled: !!actor && !!weaverPrincipal,
+    enabled: !!actor && !actorFetching,
   });
 }
 
@@ -74,30 +112,34 @@ export function useCreateOrUpdateWeaverProfile() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { name: string; logo: any; address: string }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.createOrUpdateWeaverProfile(data.name, data.logo, data.address);
+    mutationFn: async ({
+      name,
+      logo,
+      address,
+    }: {
+      name: string;
+      logo: ExternalBlob;
+      address: string;
+    }) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.createOrUpdateWeaverProfile(name, logo, address);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['weaverProfile'] });
-      toast.success('Profile updated successfully');
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to update profile: ${error.message}`);
+      queryClient.invalidateQueries({ queryKey: ["callerProfile"] });
     },
   });
 }
 
 export function useGetMyProducts() {
-  const { actor, isFetching } = useActor();
+  const { actor, isFetching: actorFetching } = useActor();
 
   return useQuery<Product[]>({
-    queryKey: ['myProducts'],
+    queryKey: ["myProducts"],
     queryFn: async () => {
       if (!actor) return [];
       return actor.getMyProducts();
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !actorFetching,
   });
 }
 
@@ -107,15 +149,11 @@ export function useAddProduct() {
 
   return useMutation({
     mutationFn: async (form: ProductForm) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.addProduct(form);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myProducts'] });
-      toast.success('Product added successfully');
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to add product: ${error.message}`);
+      queryClient.invalidateQueries({ queryKey: ["myProducts"] });
     },
   });
 }
@@ -126,92 +164,11 @@ export function useUpdateProduct() {
 
   return useMutation({
     mutationFn: async ({ id, form }: { id: bigint; form: ProductForm }) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.updateProduct(id, form);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myProducts'] });
-      toast.success('Product updated successfully');
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to update product: ${error.message}`);
-    },
-  });
-}
-
-export function useUpdateProductQuantity() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ id, quantity }: { id: bigint; quantity: bigint }) => {
-      if (!actor) throw new Error('Actor not available');
-      const products = await actor.getMyProducts();
-      const product = products.find((p) => p.id === id);
-      if (!product) throw new Error('Product not found');
-
-      const form: ProductForm = {
-        name: product.name,
-        retailPrice: product.retailPrice,
-        wholesalePrice: product.wholesalePrice,
-        directPrice: product.directPrice,
-        images: product.images,
-        description: product.description,
-        visibility: product.visibility,
-        availableQuantity: quantity,
-        madeToOrder: product.madeToOrder,
-        colors: product.colors,
-      };
-
-      return actor.updateProduct(id, form);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myProducts'] });
-      toast.success('Quantity updated');
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to update quantity: ${error.message}`);
-    },
-  });
-}
-
-export function useToggleStockStatus() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ id, inStock }: { id: bigint; inStock: boolean }) => {
-      if (!actor) throw new Error('Actor not available');
-
-      if (!inStock) {
-        return actor.markOutOfStock(id);
-      } else {
-        const products = await actor.getMyProducts();
-        const product = products.find((p) => p.id === id);
-        if (!product) throw new Error('Product not found');
-
-        const form: ProductForm = {
-          name: product.name,
-          retailPrice: product.retailPrice,
-          wholesalePrice: product.wholesalePrice,
-          directPrice: product.directPrice,
-          images: product.images,
-          description: product.description,
-          visibility: product.visibility,
-          availableQuantity: 1n,
-          madeToOrder: product.madeToOrder,
-          colors: product.colors,
-        };
-
-        return actor.updateProduct(id, form);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myProducts'] });
-      toast.success('Stock status updated');
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to update stock status: ${error.message}`);
+      queryClient.invalidateQueries({ queryKey: ["myProducts"] });
     },
   });
 }
@@ -222,48 +179,40 @@ export function useRemoveProduct() {
 
   return useMutation({
     mutationFn: async (id: bigint) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.removeProduct(id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myProducts'] });
-      toast.success('Product removed successfully');
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to remove product: ${error.message}`);
+      queryClient.invalidateQueries({ queryKey: ["myProducts"] });
     },
   });
 }
 
-export function useMarkOutOfStock() {
+export function useToggleOutOfStock() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: bigint) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.markOutOfStock(id);
+    mutationFn: async (productId: bigint) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.toggleOutOfStock(productId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myProducts'] });
-      toast.success('Product marked as out of stock');
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to mark product as out of stock: ${error.message}`);
+      queryClient.invalidateQueries({ queryKey: ["myProducts"] });
     },
   });
 }
 
 export function useGetAllCustomers() {
-  const { actor, isFetching } = useActor();
+  const { actor, isFetching: actorFetching } = useActor();
 
   return useQuery<Customer[]>({
-    queryKey: ['customers'],
+    queryKey: ["allCustomers"],
     queryFn: async () => {
       if (!actor) return [];
       return actor.getAllCustomers();
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !actorFetching,
   });
 }
 
@@ -272,16 +221,18 @@ export function useAddOrUpdateCustomer() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { id: string; name: string; customerType: CustomerType; contactDetails: string }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.addOrUpdateCustomer(data.id, data.name, data.customerType, data.contactDetails);
+    mutationFn: async ({
+      id,
+      customerForm,
+    }: {
+      id: string;
+      customerForm: CustomerForm;
+    }) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.addOrUpdateCustomer(id, customerForm);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
-      toast.success('Customer saved successfully');
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to save customer: ${error.message}`);
+      queryClient.invalidateQueries({ queryKey: ["allCustomers"] });
     },
   });
 }
@@ -292,28 +243,11 @@ export function useRemoveCustomer() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return actor.removeCustomer(id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
-      toast.success('Customer removed successfully');
+      queryClient.invalidateQueries({ queryKey: ["allCustomers"] });
     },
-    onError: (error: Error) => {
-      toast.error(`Failed to remove customer: ${error.message}`);
-    },
-  });
-}
-
-export function useGetPublicProduct(productId: bigint | undefined, owner: Principal | undefined) {
-  const { actor } = useActor();
-
-  return useQuery<Product | null>({
-    queryKey: ['publicProduct', productId?.toString(), owner?.toString()],
-    queryFn: async () => {
-      if (!actor || !productId || !owner) return null;
-      return actor.getPublicProduct(productId, owner);
-    },
-    enabled: !!actor && !!productId && !!owner,
   });
 }

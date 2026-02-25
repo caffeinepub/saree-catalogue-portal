@@ -1,28 +1,30 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Internet Computer (IC) canister deployment project",
+  "summary": "Project involves a product catalog application where customers should be able to view shared catalogs/product links without logging in. There is an ongoing issue with login prompts appearing for customers and an 'Add Product' button being visible that should be hidden from customer-facing views.",
   "architectural_notes": [
-    "Target platform: Internet Computer blockchain canisters"
+    "Customer-facing catalog/product views should be publicly accessible without authentication",
+    "UI controls like 'Add Product' should only be visible to authenticated admin/seller users, not customers"
   ],
   "known_issues": [
-    "Previous deployment attempts to IC canisters have failed"
+    "Shared catalog/product links still prompt customers to login instead of loading publicly",
+    "'Add Product' button is visible in customer-facing catalog view — should be hidden"
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-ensure-frontend-build-process-generates-proper-candid-declarations-and-environment-variables-for-canister-ids",
-      "title": "Ensure frontend build process generates proper Candid declarations and environment variables for canister IDs",
+      "id": "feature-public-catalog-and-product-detail-pages-must-be-fully-accessible-without-authentication-customers-visiting-shared-catalog-or-product-links-must-not-be-redirected-to-a-login-page-or-prompted-to-log-in-anonymous-unauthenticated-access-to-these-pages-must-be-allowed-by-default",
+      "title": "Public catalog and product detail pages must be fully accessible without authentication. Customers visiting shared catalog or product links must NOT be redirected to a login page or prompted to log in. Anonymous (unauthenticated) access to these pages must be allowed by default.",
       "reqIds": [
-        "REQ-2"
+        "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-update-frontend-routing-and-asset-paths-to-work-correctly-within-ic-canister-environment-using-relative-paths",
-      "title": "Update frontend routing and asset paths to work correctly within IC canister environment using relative paths",
+      "id": "feature-the-add-product-button-must-not-be-visible-on-the-public-customer-facing-catalog-page-it-should-only-be-visible-to-authenticated-weaver-owners-managing-their-own-catalog",
+      "title": "The 'Add Product' button must not be visible on the public/customer-facing catalog page. It should only be visible to authenticated weaver owners managing their own catalog.",
       "reqIds": [
-        "REQ-5"
+        "REQ-2"
       ],
       "version": 1
     }
@@ -30,37 +32,19 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Deploy application to Internet Computer canister",
+      "summary": "Allow public/unauthenticated access to shared catalog and product links (no login prompt for customers)",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "Configure dfx.json with proper canister definitions for both backend (Motoko) and frontend (React) canisters with appropriate build settings",
-      "reqIds": [
-        "REQ-1"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-4",
-      "summary": "Verify backend main.mo is ready for IC deployment with proper stable variable usage for state persistence across upgrades",
-      "reqIds": [
-        "REQ-3"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-5",
-      "summary": "Remove GitHub Pages deployment configuration including .github/workflows/deploy.yml and frontend/public/.nojekyll files",
-      "reqIds": [
-        "REQ-4"
-      ],
+      "summary": "Hide 'Add Product' button from customer-facing catalog views",
+      "reqIds": [],
       "status": "pending"
     }
   ],
   "gameProjectType": "none",
-  "projectName": "Weaver Catalog",
+  "projectName": "Remove login prompt and hide Add Product button from customer-facing catalog views",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

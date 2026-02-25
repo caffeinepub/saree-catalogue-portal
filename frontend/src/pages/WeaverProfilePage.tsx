@@ -1,121 +1,118 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from '@tanstack/react-router';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useGetCallerProfile, useCreateOrUpdateWeaverProfile } from '../hooks/useQueries';
-import { Save, ArrowLeft } from 'lucide-react';
-import LogoUpload from '../components/LogoUpload';
-import { ExternalBlob } from '../backend';
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
+import LogoUpload from "../components/LogoUpload";
+import { useGetCallerProfile, useCreateOrUpdateWeaverProfile } from "../hooks/useQueries";
+import { ExternalBlob } from "../backend";
 
 export default function WeaverProfilePage() {
-  const navigate = useNavigate();
-  const { identity } = useInternetIdentity();
-  const { data: profile, isLoading } = useGetCallerProfile();
-  const updateProfile = useCreateOrUpdateWeaverProfile();
+  const { data: profile, isLoading: profileLoading } = useGetCallerProfile();
+  const updateProfileMutation = useCreateOrUpdateWeaverProfile();
 
-  const [name, setName] = useState('');
-  const [address, setAddress] = useState('');
+  const [name, setName] = useState("");
+  const [address, setAddress] = useState("");
   const [logo, setLogo] = useState<ExternalBlob | null>(null);
 
+  // Populate form when profile data is loaded
   useEffect(() => {
     if (profile) {
-      setName(profile.name);
-      setAddress(profile.address);
-      setLogo(profile.logo);
+      setName(profile.name || "");
+      setAddress(profile.address || "");
+      setLogo(profile.logo || null);
     }
   }, [profile]);
 
-  if (!identity) {
-    return (
-      <div className="container mx-auto px-4 py-16 text-center">
-        <p className="text-muted-foreground">Please login to manage your profile</p>
-      </div>
-    );
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!logo) {
-      alert('Please upload a logo');
-      return;
+
+    let logoToSave = logo;
+
+    // If no logo is set, use a placeholder empty blob
+    if (!logoToSave) {
+      logoToSave = ExternalBlob.fromBytes(new Uint8Array(0));
     }
 
-    try {
-      await updateProfile.mutateAsync({ name, logo, address });
-      alert('Profile updated successfully!');
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      alert('Failed to update profile. Please try again.');
-    }
+    await updateProfileMutation.mutateAsync({
+      name,
+      logo: logoToSave,
+      address,
+    });
   };
 
-  if (isLoading) {
+  if (profileLoading) {
     return (
-      <div className="container mx-auto px-4 py-16 text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+      <div className="flex items-center justify-center min-h-[40vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-3xl">
-      <button
-        onClick={() => navigate({ to: '/' })}
-        className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back
-      </button>
+    <div className="max-w-2xl mx-auto py-8 px-4">
+      <h1 className="font-serif text-3xl font-bold mb-6">Business Profile</h1>
 
-      <div className="bg-card border border-border rounded-2xl p-6 md:p-8">
-        <h1 className="text-3xl font-serif font-bold text-foreground mb-2">Business Profile</h1>
-        <p className="text-muted-foreground mb-8">
-          Customize your business information that will be displayed on your public catalog
-        </p>
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-serif text-xl">Profile Settings</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Logo */}
+            <div className="space-y-2">
+              <Label>Business Logo</Label>
+              <LogoUpload
+                currentLogo={logo}
+                onLogoChange={setLogo}
+              />
+              <p className="text-xs text-muted-foreground">
+                Upload your business logo. It will appear on your catalogue pages.
+              </p>
+            </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <LogoUpload currentLogo={logo || undefined} onLogoChange={setLogo} />
+            {/* Business Name */}
+            <div className="space-y-1.5">
+              <Label htmlFor="name">Business Name</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Your business name"
+              />
+            </div>
 
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-foreground mb-2">
-              Business Name
-            </label>
-            <input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter your business name"
-              className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              required
-            />
-          </div>
+            {/* Address */}
+            <div className="space-y-1.5">
+              <Label htmlFor="address">Address</Label>
+              <Textarea
+                id="address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Your business address"
+                rows={3}
+              />
+            </div>
 
-          <div>
-            <label htmlFor="address" className="block text-sm font-medium text-foreground mb-2">
-              Business Address
-            </label>
-            <textarea
-              id="address"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="Enter your business address"
-              rows={4}
-              className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
-              required
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={updateProfile.isPending}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#E07A5F] to-[#C1403D] hover:from-[#C1403D] hover:to-[#E07A5F] text-white font-medium py-3 rounded-lg transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Save className="w-5 h-5" />
-            {updateProfile.isPending ? 'Saving...' : 'Save Profile'}
-          </button>
-        </form>
-      </div>
+            <Button
+              type="submit"
+              disabled={updateProfileMutation.isPending}
+              className="w-full"
+            >
+              {updateProfileMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Profile"
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

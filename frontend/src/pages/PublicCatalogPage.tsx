@@ -1,176 +1,120 @@
-import React from 'react';
-import { useParams } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
-import { Principal } from '@dfinity/principal';
-import { CustomerType, Product } from '../backend';
-import { useActor } from '../hooks/useActor';
-import { useWeaverProfile } from '../hooks/useQueries';
-import { Image as ImageIcon } from 'lucide-react';
+import { useParams } from "@tanstack/react-router";
+import { Principal } from "@dfinity/principal";
+import { CustomerType } from "../backend";
+import { useGetPublicCatalog } from "../hooks/useQueries";
+import ProductCard from "../components/ProductCard";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Package } from "lucide-react";
+
+function parseCustomerType(raw: string): CustomerType {
+  if (raw === "wholesale") return CustomerType.wholesale;
+  if (raw === "direct") return CustomerType.direct;
+  return CustomerType.retail;
+}
 
 export default function PublicCatalogPage() {
-  const { weaverId, customerType } = useParams({ strict: false });
-  const { actor } = useActor();
-
-  const weaverPrincipal = weaverId ? Principal.fromText(weaverId) : undefined;
-
-  const { data: weaverProfile } = useWeaverProfile(weaverPrincipal);
-
-  const { data: products = [], isLoading } = useQuery<Product[]>({
-    queryKey: ['publicCatalog', weaverId, customerType],
-    queryFn: async () => {
-      if (!actor || !weaverPrincipal || !customerType) return [];
-      const type = customerType as CustomerType;
-      return actor.getPublicCatalog(weaverPrincipal, CustomerType[type]);
-    },
-    enabled: !!actor && !!weaverPrincipal && !!customerType,
+  const { weaverId, customerType: customerTypeRaw } = useParams({
+    from: "/public-layout/public-catalog/$weaverId/$customerType",
   });
 
-  const getPriceForCustomerType = (product: Product): string => {
-    if (!customerType) return '';
-    switch (customerType) {
-      case 'retail':
-        return product.retailPrice.toString();
-      case 'wholesale':
-        return product.wholesalePrice.toString();
-      case 'direct':
-        return product.directPrice.toString();
-      default:
-        return '';
-    }
-  };
+  const customerType = parseCustomerType(customerTypeRaw);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading catalog...</p>
-        </div>
-      </div>
-    );
+  let weaverPrincipal: Principal | null = null;
+  try {
+    weaverPrincipal = Principal.fromText(weaverId);
+  } catch {
+    // invalid principal
   }
 
+  const { data: products = [], isLoading } = useGetPublicCatalog(
+    weaverPrincipal,
+    customerType
+  );
+
+  const customerTypeLabel =
+    customerType === CustomerType.wholesale
+      ? "Wholesale"
+      : customerType === CustomerType.direct
+      ? "Direct"
+      : "Retail";
+
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center gap-4">
-            {weaverProfile?.logo && (
-              <img
-                src={weaverProfile.logo.getDirectURL()}
-                alt="Weaver Logo"
-                className="w-16 h-16 object-cover rounded-full border-2 border-primary"
-              />
-            )}
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">
-                {weaverProfile?.name || 'Weaver'} Catalog
-              </h1>
-              <p className="text-muted-foreground capitalize">
-                {customerType} Customer Pricing
-              </p>
-            </div>
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Self-contained header — no auth required */}
+      <header className="bg-card border-b border-border shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center">
+            <Package className="w-5 h-5 text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="text-xl font-serif font-bold text-foreground">
+              Product Catalog
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              {customerTypeLabel} Pricing
+            </p>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        {products.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground text-lg">No products available at this time.</p>
+      {/* Main content */}
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+        {!weaverPrincipal ? (
+          <div className="text-center py-16">
+            <p className="text-destructive font-medium">Invalid catalog link.</p>
+          </div>
+        ) : isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div
+                key={i}
+                className="rounded-xl overflow-hidden border border-border"
+              >
+                <Skeleton className="h-56 w-full" />
+                <div className="p-4 space-y-2">
+                  <Skeleton className="h-5 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : products.length === 0 ? (
+          <div className="text-center py-16">
+            <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground text-lg">
+              No products available in this catalog.
+            </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {products.map((product) => {
-              const displayImage = product.images && product.images.length > 0 ? product.images[0] : null;
-              
-              return (
-                <div
-                  key={product.id.toString()}
-                  className="bg-card rounded-lg border overflow-hidden hover:shadow-lg transition-shadow"
-                >
-                  <div className="aspect-square relative overflow-hidden bg-muted">
-                    {displayImage ? (
-                      <img
-                        src={displayImage.getDirectURL()}
-                        alt={product.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <ImageIcon className="w-16 h-16 text-muted-foreground" />
-                      </div>
-                    )}
-                    {product.madeToOrder && (
-                      <div className="absolute top-2 right-2 bg-accent text-accent-foreground px-2 py-1 rounded text-xs font-medium">
-                        Made to Order
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="p-4 space-y-3">
-                    <div>
-                      <h3 className="font-semibold text-lg">{product.name}</h3>
-                      <p className="text-sm text-muted-foreground">ID: {product.id.toString()}</p>
-                    </div>
-
-                    {product.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
-                    )}
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-2xl font-bold text-primary">
-                        ₹{getPriceForCustomerType(product)}
-                      </span>
-                      <div
-                        className={`px-2 py-1 rounded text-xs font-medium ${
-                          product.availableQuantity > 0n
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        {product.availableQuantity > 0n ? 'In Stock' : 'Out of Stock'}
-                      </div>
-                    </div>
-
-                    {product.colors && product.colors.length > 0 && (
-                      <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Available Colors:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {product.colors.map((color) => (
-                            <div
-                              key={color.hex}
-                              className="w-6 h-6 rounded-full border border-gray-300"
-                              style={{ backgroundColor: color.hex }}
-                              title={color.name}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {products.map((product) => (
+              <ProductCard
+                key={product.id.toString()}
+                product={product}
+                customerType={customerType}
+                weaverId={weaverId}
+                isOwner={false}
+                showOwnerControls={false}
+              />
+            ))}
           </div>
         )}
       </main>
 
-      <footer className="border-t mt-12 py-6 bg-card">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>
-            © {new Date().getFullYear()} {weaverProfile?.name || 'Weaver'}. Built with ❤️ using{' '}
-            <a
-              href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(
-                window.location.hostname
-              )}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              caffeine.ai
-            </a>
-          </p>
+      {/* Footer */}
+      <footer className="border-t border-border bg-card mt-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 text-center text-sm text-muted-foreground">
+          Built with <span className="text-destructive">♥</span> using{" "}
+          <a
+            href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(
+              window.location.hostname || "unknown-app"
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-foreground transition-colors"
+          >
+            caffeine.ai
+          </a>
         </div>
       </footer>
     </div>

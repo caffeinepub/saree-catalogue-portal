@@ -15,8 +15,23 @@ export interface Customer {
   'id' : string,
   'customerType' : CustomerType,
   'owner' : Principal,
+  'city' : [] | [string],
+  'postalCode' : [] | [string],
   'name' : string,
-  'contactDetails' : string,
+  'businessName' : [] | [string],
+  'state' : [] | [string],
+  'addressLine1' : [] | [string],
+  'contactNumber' : string,
+}
+export interface CustomerForm {
+  'customerType' : CustomerType,
+  'city' : [] | [string],
+  'postalCode' : [] | [string],
+  'name' : string,
+  'businessName' : [] | [string],
+  'state' : [] | [string],
+  'addressLine1' : [] | [string],
+  'contactNumber' : string,
 }
 export type CustomerType = { 'retail' : null } |
   { 'direct' : null } |
@@ -88,10 +103,7 @@ export interface _SERVICE {
   >,
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
-  'addOrUpdateCustomer' : ActorMethod<
-    [string, string, CustomerType, string],
-    undefined
-  >,
+  'addOrUpdateCustomer' : ActorMethod<[string, CustomerForm], undefined>,
   'addProduct' : ActorMethod<[ProductForm], bigint>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'createOrUpdateWeaverProfile' : ActorMethod<
@@ -107,15 +119,19 @@ export interface _SERVICE {
   'getCustomer' : ActorMethod<[string], [] | [Customer]>,
   'getMyProducts' : ActorMethod<[], Array<Product>>,
   'getProduct' : ActorMethod<[bigint, Principal], [] | [Product]>,
-  'getPublicCatalog' : ActorMethod<[Principal, CustomerType], Array<Product>>,
+  'getPublicCatalogNonAuthenticated' : ActorMethod<
+    [Principal, CustomerType],
+    Array<Product>
+  >,
   'getPublicProduct' : ActorMethod<[bigint, Principal], [] | [Product]>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
-  'markOutOfStock' : ActorMethod<[bigint], undefined>,
   'removeCustomer' : ActorMethod<[string], undefined>,
   'removeProduct' : ActorMethod<[bigint], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'toggleOutOfStock' : ActorMethod<[bigint], undefined>,
   'updateProduct' : ActorMethod<[bigint, ProductForm], undefined>,
+  'updateProductQuantity' : ActorMethod<[bigint, bigint], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];
