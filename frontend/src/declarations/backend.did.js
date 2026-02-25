@@ -47,6 +47,7 @@ export const ProductForm = IDL.Record({
   'name' : IDL.Text,
   'wholesalePrice' : IDL.Nat,
   'description' : IDL.Text,
+  'stockCount' : IDL.Nat,
   'madeToOrder' : IDL.Bool,
   'directPrice' : IDL.Nat,
   'colors' : IDL.Vec(Color),
@@ -70,6 +71,13 @@ export const Customer = IDL.Record({
   'addressLine1' : IDL.Opt(IDL.Text),
   'contactNumber' : IDL.Text,
 });
+export const Time = IDL.Int;
+export const RSVP = IDL.Record({
+  'name' : IDL.Text,
+  'inviteCode' : IDL.Text,
+  'timestamp' : Time,
+  'attending' : IDL.Bool,
+});
 export const WeaverProfile = IDL.Record({
   'logo' : ExternalBlob,
   'name' : IDL.Text,
@@ -84,11 +92,17 @@ export const Product = IDL.Record({
   'name' : IDL.Text,
   'wholesalePrice' : IDL.Nat,
   'description' : IDL.Text,
+  'stockCount' : IDL.Nat,
   'madeToOrder' : IDL.Bool,
   'directPrice' : IDL.Nat,
   'colors' : IDL.Vec(Color),
   'visibility' : ProductVisibility,
   'images' : IDL.Vec(ExternalBlob),
+});
+export const InviteCode = IDL.Record({
+  'created' : Time,
+  'code' : IDL.Text,
+  'used' : IDL.Bool,
 });
 
 export const idlService = IDL.Service({
@@ -127,7 +141,10 @@ export const idlService = IDL.Service({
       [],
       [],
     ),
+  'explicitSetStockCount' : IDL.Func([IDL.Nat, IDL.Nat], [], []),
+  'generateInviteCode' : IDL.Func([], [IDL.Text], []),
   'getAllCustomers' : IDL.Func([], [IDL.Vec(Customer)], ['query']),
+  'getAllRSVPs' : IDL.Func([], [IDL.Vec(RSVP)], ['query']),
   'getCallerProfile' : IDL.Func([], [IDL.Opt(WeaverProfile)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
@@ -142,6 +159,7 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'getCustomer' : IDL.Func([IDL.Text], [IDL.Opt(Customer)], ['query']),
+  'getInviteCodes' : IDL.Func([], [IDL.Vec(InviteCode)], ['query']),
   'getMyProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
   'getProduct' : IDL.Func(
       [IDL.Nat, IDL.Principal],
@@ -167,6 +185,7 @@ export const idlService = IDL.Service({
   'removeCustomer' : IDL.Func([IDL.Text], [], []),
   'removeProduct' : IDL.Func([IDL.Nat], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'submitRSVP' : IDL.Func([IDL.Text, IDL.Bool, IDL.Text], [], []),
   'toggleOutOfStock' : IDL.Func([IDL.Nat], [], []),
   'updateProduct' : IDL.Func([IDL.Nat, ProductForm], [], []),
   'updateProductQuantity' : IDL.Func([IDL.Nat, IDL.Nat], [], []),
@@ -214,6 +233,7 @@ export const idlFactory = ({ IDL }) => {
     'name' : IDL.Text,
     'wholesalePrice' : IDL.Nat,
     'description' : IDL.Text,
+    'stockCount' : IDL.Nat,
     'madeToOrder' : IDL.Bool,
     'directPrice' : IDL.Nat,
     'colors' : IDL.Vec(Color),
@@ -237,6 +257,13 @@ export const idlFactory = ({ IDL }) => {
     'addressLine1' : IDL.Opt(IDL.Text),
     'contactNumber' : IDL.Text,
   });
+  const Time = IDL.Int;
+  const RSVP = IDL.Record({
+    'name' : IDL.Text,
+    'inviteCode' : IDL.Text,
+    'timestamp' : Time,
+    'attending' : IDL.Bool,
+  });
   const WeaverProfile = IDL.Record({
     'logo' : ExternalBlob,
     'name' : IDL.Text,
@@ -251,11 +278,17 @@ export const idlFactory = ({ IDL }) => {
     'name' : IDL.Text,
     'wholesalePrice' : IDL.Nat,
     'description' : IDL.Text,
+    'stockCount' : IDL.Nat,
     'madeToOrder' : IDL.Bool,
     'directPrice' : IDL.Nat,
     'colors' : IDL.Vec(Color),
     'visibility' : ProductVisibility,
     'images' : IDL.Vec(ExternalBlob),
+  });
+  const InviteCode = IDL.Record({
+    'created' : Time,
+    'code' : IDL.Text,
+    'used' : IDL.Bool,
   });
   
   return IDL.Service({
@@ -294,7 +327,10 @@ export const idlFactory = ({ IDL }) => {
         [],
         [],
       ),
+    'explicitSetStockCount' : IDL.Func([IDL.Nat, IDL.Nat], [], []),
+    'generateInviteCode' : IDL.Func([], [IDL.Text], []),
     'getAllCustomers' : IDL.Func([], [IDL.Vec(Customer)], ['query']),
+    'getAllRSVPs' : IDL.Func([], [IDL.Vec(RSVP)], ['query']),
     'getCallerProfile' : IDL.Func([], [IDL.Opt(WeaverProfile)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
@@ -309,6 +345,7 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'getCustomer' : IDL.Func([IDL.Text], [IDL.Opt(Customer)], ['query']),
+    'getInviteCodes' : IDL.Func([], [IDL.Vec(InviteCode)], ['query']),
     'getMyProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
     'getProduct' : IDL.Func(
         [IDL.Nat, IDL.Principal],
@@ -334,6 +371,7 @@ export const idlFactory = ({ IDL }) => {
     'removeCustomer' : IDL.Func([IDL.Text], [], []),
     'removeProduct' : IDL.Func([IDL.Nat], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'submitRSVP' : IDL.Func([IDL.Text, IDL.Bool, IDL.Text], [], []),
     'toggleOutOfStock' : IDL.Func([IDL.Nat], [], []),
     'updateProduct' : IDL.Func([IDL.Nat, ProductForm], [], []),
     'updateProductQuantity' : IDL.Func([IDL.Nat, IDL.Nat], [], []),

@@ -1,5 +1,4 @@
 import { useParams } from "@tanstack/react-router";
-import { Principal } from "@dfinity/principal";
 import { CustomerType } from "../backend";
 import { useGetPublicCatalog } from "../hooks/useQueries";
 import ProductCard from "../components/ProductCard";
@@ -19,15 +18,8 @@ export default function PublicCatalogPage() {
 
   const customerType = parseCustomerType(customerTypeRaw);
 
-  let weaverPrincipal: Principal | null = null;
-  try {
-    weaverPrincipal = Principal.fromText(weaverId);
-  } catch {
-    // invalid principal
-  }
-
   const { data: products = [], isLoading } = useGetPublicCatalog(
-    weaverPrincipal,
+    weaverId || null,
     customerType
   );
 
@@ -59,7 +51,7 @@ export default function PublicCatalogPage() {
 
       {/* Main content */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-        {!weaverPrincipal ? (
+        {!weaverId ? (
           <div className="text-center py-16">
             <p className="text-destructive font-medium">Invalid catalog link.</p>
           </div>

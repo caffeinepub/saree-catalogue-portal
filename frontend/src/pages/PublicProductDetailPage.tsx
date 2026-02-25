@@ -1,5 +1,4 @@
 import { useParams } from "@tanstack/react-router";
-import { Principal } from "@dfinity/principal";
 import { CustomerType } from "../backend";
 import { useGetPublicProduct } from "../hooks/useQueries";
 import ImageGallery from "../components/ImageGallery";
@@ -28,18 +27,16 @@ export default function PublicProductDetailPage() {
 
   const customerType = parseCustomerType(customerTypeRaw);
 
-  let weaverPrincipal: Principal | null = null;
+  let productId: bigint | null = null;
   try {
-    weaverPrincipal = Principal.fromText(weaverId);
+    productId = BigInt(productIdRaw || "0");
   } catch {
-    // invalid
+    // invalid product id
   }
 
-  const productId = BigInt(productIdRaw || "0");
-
   const { data: product, isLoading } = useGetPublicProduct(
-    weaverPrincipal,
-    productId
+    productId,
+    weaverId || null
   );
 
   const price = product
@@ -91,7 +88,7 @@ export default function PublicProductDetailPage() {
 
       {/* Main content */}
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-        {!weaverPrincipal ? (
+        {!weaverId || productId === null ? (
           <div className="text-center py-16">
             <p className="text-destructive font-medium">Invalid product link.</p>
           </div>

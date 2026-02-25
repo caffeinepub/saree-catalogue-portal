@@ -1,50 +1,24 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Project involves a product catalog application where customers should be able to view shared catalogs/product links without logging in. There is an ongoing issue with login prompts appearing for customers and an 'Add Product' button being visible that should be hidden from customer-facing views.",
-  "architectural_notes": [
-    "Customer-facing catalog/product views should be publicly accessible without authentication",
-    "UI controls like 'Add Product' should only be visible to authenticated admin/seller users, not customers"
-  ],
+  "summary": "New project",
+  "architectural_notes": [],
   "known_issues": [
-    "Shared catalog/product links still prompt customers to login instead of loading publicly",
-    "'Add Product' button is visible in customer-facing catalog view — should be hidden"
+    "Add product button fails with 'failed to add product' error"
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-public-catalog-and-product-detail-pages-must-be-fully-accessible-without-authentication-customers-visiting-shared-catalog-or-product-links-must-not-be-redirected-to-a-login-page-or-prompted-to-log-in-anonymous-unauthenticated-access-to-these-pages-must-be-allowed-by-default",
-      "title": "Public catalog and product detail pages must be fully accessible without authentication. Customers visiting shared catalog or product links must NOT be redirected to a login page or prompted to log in. Anonymous (unauthenticated) access to these pages must be allowed by default.",
+      "id": "feature-diagnose-and-fix-the-failed-to-add-product-error-that-occurs-when-a-weaver-clicks-the-add-product-button-on-the-catalog-management-page-the-fix-must-ensure-that-submitting-the-product-form-successfully-calls-the-backend-and-persists-the-new-product-without-error",
+      "title": "Diagnose and fix the 'failed to add product' error that occurs when a weaver clicks the 'Add Product' button on the Catalog Management page. The fix must ensure that submitting the product form successfully calls the backend and persists the new product without error.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
-    },
-    {
-      "id": "feature-the-add-product-button-must-not-be-visible-on-the-public-customer-facing-catalog-page-it-should-only-be-visible-to-authenticated-weaver-owners-managing-their-own-catalog",
-      "title": "The 'Add Product' button must not be visible on the public/customer-facing catalog page. It should only be visible to authenticated weaver owners managing their own catalog.",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "version": 1
     }
   ],
-  "new_feature_requests": [
-    {
-      "id": "AR-1",
-      "summary": "Allow public/unauthenticated access to shared catalog and product links (no login prompt for customers)",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-2",
-      "summary": "Hide 'Add Product' button from customer-facing catalog views",
-      "reqIds": [],
-      "status": "pending"
-    }
-  ],
-  "gameProjectType": "none",
-  "projectName": "Remove login prompt and hide Add Product button from customer-facing catalog views",
+  "new_feature_requests": [],
+  "projectName": "Fix 'Add Product' failure error",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

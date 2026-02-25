@@ -1,31 +1,24 @@
 import Map "mo:core/Map";
-import Text "mo:core/Text";
 import Nat "mo:core/Nat";
 import Principal "mo:core/Principal";
 import Storage "blob-storage/Storage";
 
 module {
-  type WeaverProfile = {
-    name : Text;
-    logo : Storage.ExternalBlob;
-    address : Text;
-  };
-
-  type CustomerType = {
+  public type CustomerType = {
     #retail;
     #wholesale;
     #direct;
   };
 
-  type ProductVisibility = {
+  public type ProductVisibility = {
     #retailOnly;
     #wholesaleOnly;
     #all;
   };
 
-  type Color = { name : Text; hex : Text };
+  public type Color = { name : Text; hex : Text };
 
-  type Product = {
+  public type Product = {
     id : Nat;
     owner : Principal;
     name : Text;
@@ -35,34 +28,53 @@ module {
     images : [Storage.ExternalBlob];
     description : Text;
     visibility : ProductVisibility;
+    stockCount : Nat;
     availableQuantity : Nat;
     madeToOrder : Bool;
     colors : [Color];
   };
 
-  type Customer = {
+  public type Customer = {
     id : Text;
     owner : Principal;
     name : Text;
+    businessName : ?Text;
+    contactNumber : Text;
+    addressLine1 : ?Text;
+    city : ?Text;
+    state : ?Text;
+    postalCode : ?Text;
     customerType : CustomerType;
-    contactDetails : Text;
   };
 
-  type UserProfile = {
+  public type WeaverProfile = {
+    name : Text;
+    logo : Storage.ExternalBlob;
+    address : Text;
+  };
+
+  public type UserProfile = {
     name : Text;
   };
 
-  type OldActor = {
-    weaverProfiles : Map.Map<Principal, WeaverProfile>;
+  public type OldActor = {
     products : Map.Map<Principal, Map.Map<Nat, Product>>;
     customerDetails : Map.Map<Text, Customer>;
+    weaverProfiles : Map.Map<Principal, WeaverProfile>;
     userProfiles : Map.Map<Principal, UserProfile>;
     productCounters : Map.Map<Principal, Nat>;
   };
 
-  type NewActor = OldActor;
+  public type NewActor = {
+    products : Map.Map<Principal, Map.Map<Nat, Product>>;
+    customerDetails : Map.Map<Text, Customer>;
+    weaverProfiles : Map.Map<Principal, WeaverProfile>;
+    userProfiles : Map.Map<Principal, UserProfile>;
+    productCounters : Map.Map<Principal, Nat>;
+    nextProductId : Map.Map<Principal, Nat>;
+  };
 
   public func run(old : OldActor) : NewActor {
-    old;
+    { old with nextProductId = Map.empty<Principal, Nat>() };
   };
 };

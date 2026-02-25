@@ -1,54 +1,35 @@
 {
   "kind": "build_request",
-  "title": "Remove login prompt and hide Add Product button from customer-facing catalog views",
+  "title": "Fix 'Add Product' failure error",
   "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Public catalog and product detail pages must be fully accessible without authentication. Customers visiting shared catalog or product links must NOT be redirected to a login page or prompted to log in. Anonymous (unauthenticated) access to these pages must be allowed by default.",
+      "text": "Diagnose and fix the 'failed to add product' error that occurs when a weaver clicks the 'Add Product' button on the Catalog Management page. The fix must ensure that submitting the product form successfully calls the backend and persists the new product without error.",
       "target": "both",
       "source": {
         "messageIds": [
           "msg-4"
         ],
         "quotes": [
-          "its still prompting to login"
+          "I am now not able to add product. When o click on add product it says failed to add product"
         ]
       },
       "acceptanceCriteria": [
-        "Opening a shared catalog link (e.g., /catalog/:weaverId) without being logged in loads the catalog page directly with no login prompt or redirect",
-        "Opening a shared product detail link (e.g., /product/:productId) without being logged in loads the product page directly with no login prompt or redirect",
-        "The backend query calls for public catalog and product data accept anonymous callers and return data without requiring authentication",
-        "The router layout for public catalog and product pages has no authentication guard"
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "The 'Add Product' button must not be visible on the public/customer-facing catalog page. It should only be visible to authenticated weaver owners managing their own catalog.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-4"
-        ],
-        "quotes": [
-          "I am seeing the add product button in there as well. all of that is not required for the customer"
-        ]
-      },
-      "acceptanceCriteria": [
-        "When a customer visits a shared catalog link without being logged in, the 'Add Product' button is not rendered anywhere on the page",
-        "When an authenticated weaver views their own catalog management page, the 'Add Product' button remains visible and functional",
-        "No other owner-only controls (edit, delete, stock toggle) are visible on the public catalog page"
+        "Clicking 'Add Product' and submitting a valid product form does not show a 'failed to add product' error toast or message.",
+        "The newly added product appears in the catalog grid after successful submission.",
+        "Any backend error response is caught and surfaced with a meaningful error message instead of a generic failure.",
+        "The product form closes upon successful submission."
       ]
     }
   ],
   "constraints": [
-    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui",
-    "The weaver-facing catalog management page (CatalogManagementPage.tsx) must retain all existing controls including the Add Product button"
+    "Do not change the overall product data model unless required to fix the bug.",
+    "Do not modify files listed under frontend.immutablePaths."
   ],
   "nonGoals": [
-    "Adding new authentication flows or changing login behavior for weavers",
-    "Changing the visual design or layout of catalog or product detail pages",
-    "Modifying customer management or profile features"
+    "Adding new product fields or changing the product form UI beyond what is needed to fix the bug.",
+    "Changes to customer management or share link functionality."
   ],
   "imageRequirements": {
     "required": [],

@@ -93,12 +93,29 @@ export interface _CaffeineStorageRefillResult {
     success?: boolean;
     topped_up_amount?: bigint;
 }
+export type Time = bigint;
 export interface _CaffeineStorageRefillInformation {
     proposed_top_up_amount?: bigint;
 }
 export interface _CaffeineStorageCreateCertificateResult {
     method: string;
     blob_hash: string;
+}
+export interface WeaverProfile {
+    logo: ExternalBlob;
+    name: string;
+    address: string;
+}
+export interface InviteCode {
+    created: Time;
+    code: string;
+    used: boolean;
+}
+export interface RSVP {
+    name: string;
+    inviteCode: string;
+    timestamp: Time;
+    attending: boolean;
 }
 export interface Customer {
     id: string;
@@ -111,11 +128,6 @@ export interface Customer {
     state?: string;
     addressLine1?: string;
     contactNumber: string;
-}
-export interface WeaverProfile {
-    logo: ExternalBlob;
-    name: string;
-    address: string;
 }
 export interface CustomerForm {
     customerType: CustomerType;
@@ -137,6 +149,7 @@ export interface ProductForm {
     name: string;
     wholesalePrice: bigint;
     description: string;
+    stockCount: bigint;
     madeToOrder: boolean;
     directPrice: bigint;
     colors: Array<Color>;
@@ -151,6 +164,7 @@ export interface Product {
     name: string;
     wholesalePrice: bigint;
     description: string;
+    stockCount: bigint;
     madeToOrder: boolean;
     directPrice: bigint;
     colors: Array<Color>;
@@ -187,13 +201,17 @@ export interface backendInterface {
     addProduct(form: ProductForm): Promise<bigint>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     createOrUpdateWeaverProfile(name: string, logo: ExternalBlob, address: string): Promise<void>;
+    explicitSetStockCount(productId: bigint, newStockCount: bigint): Promise<void>;
+    generateInviteCode(): Promise<string>;
     getAllCustomers(): Promise<Array<Customer>>;
+    getAllRSVPs(): Promise<Array<RSVP>>;
     getCallerProfile(): Promise<WeaverProfile | null>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getCatalogByCustomerType(customerType: CustomerType): Promise<Array<Product>>;
     getCatalogByWeaver(weaverPrincipal: Principal, customerType: CustomerType): Promise<Array<Product>>;
     getCustomer(id: string): Promise<Customer | null>;
+    getInviteCodes(): Promise<Array<InviteCode>>;
     getMyProducts(): Promise<Array<Product>>;
     getProduct(productId: bigint, owner: Principal): Promise<Product | null>;
     getPublicCatalogNonAuthenticated(weaverPrincipal: Principal, targetType: CustomerType): Promise<Array<Product>>;
@@ -203,6 +221,7 @@ export interface backendInterface {
     removeCustomer(id: string): Promise<void>;
     removeProduct(id: bigint): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    submitRSVP(name: string, attending: boolean, inviteCode: string): Promise<void>;
     toggleOutOfStock(productId: bigint): Promise<void>;
     updateProduct(id: bigint, form: ProductForm): Promise<void>;
     updateProductQuantity(productId: bigint, newQuantity: bigint): Promise<void>;
@@ -364,6 +383,34 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async explicitSetStockCount(arg0: bigint, arg1: bigint): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.explicitSetStockCount(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.explicitSetStockCount(arg0, arg1);
+            return result;
+        }
+    }
+    async generateInviteCode(): Promise<string> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.generateInviteCode();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.generateInviteCode();
+            return result;
+        }
+    }
     async getAllCustomers(): Promise<Array<Customer>> {
         if (this.processError) {
             try {
@@ -376,6 +423,20 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.getAllCustomers();
             return from_candid_vec_n20(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getAllRSVPs(): Promise<Array<RSVP>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllRSVPs();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllRSVPs();
+            return result;
         }
     }
     async getCallerProfile(): Promise<WeaverProfile | null> {
@@ -460,6 +521,20 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.getCustomer(arg0);
             return from_candid_opt_n39(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getInviteCodes(): Promise<Array<InviteCode>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getInviteCodes();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getInviteCodes();
+            return result;
         }
     }
     async getMyProducts(): Promise<Array<Product>> {
@@ -585,6 +660,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.saveCallerUserProfile(arg0);
+            return result;
+        }
+    }
+    async submitRSVP(arg0: string, arg1: boolean, arg2: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.submitRSVP(arg0, arg1, arg2);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.submitRSVP(arg0, arg1, arg2);
             return result;
         }
     }
@@ -735,6 +824,7 @@ async function from_candid_record_n35(_uploadFile: (file: ExternalBlob) => Promi
     name: string;
     wholesalePrice: bigint;
     description: string;
+    stockCount: bigint;
     madeToOrder: boolean;
     directPrice: bigint;
     colors: Array<_Color>;
@@ -748,6 +838,7 @@ async function from_candid_record_n35(_uploadFile: (file: ExternalBlob) => Promi
     name: string;
     wholesalePrice: bigint;
     description: string;
+    stockCount: bigint;
     madeToOrder: boolean;
     directPrice: bigint;
     colors: Array<Color>;
@@ -762,6 +853,7 @@ async function from_candid_record_n35(_uploadFile: (file: ExternalBlob) => Promi
         name: value.name,
         wholesalePrice: value.wholesalePrice,
         description: value.description,
+        stockCount: value.stockCount,
         madeToOrder: value.madeToOrder,
         directPrice: value.directPrice,
         colors: value.colors,
@@ -847,6 +939,7 @@ async function to_candid_record_n13(_uploadFile: (file: ExternalBlob) => Promise
     name: string;
     wholesalePrice: bigint;
     description: string;
+    stockCount: bigint;
     madeToOrder: boolean;
     directPrice: bigint;
     colors: Array<Color>;
@@ -858,6 +951,7 @@ async function to_candid_record_n13(_uploadFile: (file: ExternalBlob) => Promise
     name: string;
     wholesalePrice: bigint;
     description: string;
+    stockCount: bigint;
     madeToOrder: boolean;
     directPrice: bigint;
     colors: Array<_Color>;
@@ -870,6 +964,7 @@ async function to_candid_record_n13(_uploadFile: (file: ExternalBlob) => Promise
         name: value.name,
         wholesalePrice: value.wholesalePrice,
         description: value.description,
+        stockCount: value.stockCount,
         madeToOrder: value.madeToOrder,
         directPrice: value.directPrice,
         colors: value.colors,

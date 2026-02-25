@@ -6,13 +6,16 @@ import Nat "mo:core/Nat";
 import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
 import Text "mo:core/Text";
+import InviteLinksModule "invite-links/invite-links-module";
+
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 import MixinStorage "blob-storage/Mixin";
 import Storage "blob-storage/Storage";
+import Random "mo:core/Random";
+import Migration "migration";
 
-// Persistent data migration across upgrades
-
+(with migration = Migration.run)
 actor {
   // State for core components
   let accessControlState = AccessControl.initState();
@@ -57,6 +60,7 @@ actor {
     images : [Storage.ExternalBlob];
     description : Text;
     visibility : ProductVisibility;
+    stockCount : Nat;
     availableQuantity : Nat;
     madeToOrder : Bool;
     colors : [Color];
@@ -70,6 +74,7 @@ actor {
     images : [Storage.ExternalBlob];
     description : Text;
     visibility : ProductVisibility;
+    stockCount : Nat;
     availableQuantity : Nat;
     madeToOrder : Bool;
     colors : [Color];
@@ -101,7 +106,7 @@ actor {
 
   let products = Map.empty<Principal, Map.Map<Nat, Product>>();
   let productCounters = Map.empty<Principal, Nat>();
-
+  let nextProductId = Map.empty<Principal, Nat>();
   module Product {
     public func compare(product1 : Product, product2 : Product) : Order.Order {
       Text.compare(product1.name, product2.name);
@@ -153,15 +158,21 @@ actor {
       Runtime.trap("Unauthorized: Only users can add products");
     };
 
-    let productId = switch (productCounters.get(caller)) {
+    // Use productCounters to get the current product ID or default to 1
+    let currentProductId = switch (productCounters.get(caller)) {
       case (null) { 1 };
       case (?counter) { counter + 1 };
     };
 
-    productCounters.add(caller, productId);
+    productCounters.add(caller, currentProductId);
+
+    // Update nextProductId if not already set
+    if (nextProductId.get(caller) == null) {
+      nextProductId.add(caller, 2);
+    };
 
     let product : Product = {
-      id = productId;
+      id = currentProductId;
       owner = caller;
       name = form.name;
       retailPrice = form.retailPrice;
@@ -170,25 +181,21 @@ actor {
       images = form.images;
       description = form.description;
       visibility = form.visibility;
+      stockCount = form.stockCount;
       availableQuantity = form.availableQuantity;
       madeToOrder = form.madeToOrder;
       colors = form.colors;
     };
 
-    let existingProducts = switch (products.get(caller)) {
+    let mutableProducts = switch (products.get(caller)) {
       case (null) { Map.empty<Nat, Product>() };
-      case (?productMap) {
-        if (productMap.containsKey(productId)) {
-          Runtime.trap("Product with this ID already exists");
-        };
-        productMap;
-      };
+      case (?productMap) { productMap };
     };
 
-    existingProducts.add(productId, product);
-    products.add(caller, existingProducts);
+    mutableProducts.add(currentProductId, product);
+    products.add(caller, mutableProducts);
 
-    productId;
+    currentProductId;
   };
 
   public shared ({ caller }) func updateProduct(id : Nat, form : ProductForm) : async () {
@@ -216,6 +223,7 @@ actor {
               images = form.images;
               description = form.description;
               visibility = form.visibility;
+              stockCount = form.stockCount;
               availableQuantity = form.availableQuantity;
               madeToOrder = form.madeToOrder;
               colors = form.colors;
@@ -263,6 +271,27 @@ actor {
           case (?existingProduct) {
             let updatedProduct : Product = {
               existingProduct with availableQuantity = newQuantity;
+            };
+            productMap.add(productId, updatedProduct);
+          };
+        };
+      };
+    };
+  };
+
+  public shared ({ caller }) func explicitSetStockCount(productId : Nat, newStockCount : Nat) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can set stock count explicitly");
+    };
+
+    switch (products.get(caller)) {
+      case (null) { Runtime.trap("Product does not exist") };
+      case (?productMap) {
+        switch (productMap.get(productId)) {
+          case (null) { Runtime.trap("Product does not exist") };
+          case (?existingProduct) {
+            let updatedProduct : Product = {
+              existingProduct with stockCount = newStockCount;
             };
             productMap.add(productId, updatedProduct);
           };
@@ -492,5 +521,36 @@ actor {
         customerDetails.remove(id);
       };
     };
+  };
+
+  // ----- New RSVP and Invite Links Functions -----
+  let inviteState = InviteLinksModule.initState();
+
+  public shared ({ caller }) func generateInviteCode() : async Text {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can generate invite codes");
+    };
+    let blob = await Random.blob();
+    let code = InviteLinksModule.generateUUID(blob);
+    InviteLinksModule.generateInviteCode(inviteState, code);
+    code;
+  };
+
+  public shared ({ caller }) func submitRSVP(name : Text, attending : Bool, inviteCode : Text) : async () {
+    InviteLinksModule.submitRSVP(inviteState, name, attending, inviteCode);
+  };
+
+  public query ({ caller }) func getAllRSVPs() : async [InviteLinksModule.RSVP] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can view RSVPs");
+    };
+    InviteLinksModule.getAllRSVPs(inviteState);
+  };
+
+  public query ({ caller }) func getInviteCodes() : async [InviteLinksModule.InviteCode] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can view invite codes");
+    };
+    InviteLinksModule.getInviteCodes(inviteState);
   };
 };

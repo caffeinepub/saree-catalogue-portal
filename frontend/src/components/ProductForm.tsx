@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Product, ProductForm as ProductFormType, ProductVisibility, ExternalBlob, Color } from '../backend';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2, Plus, X } from 'lucide-react';
 import MultiImageUpload from './MultiImageUpload';
+import { Product, ExternalBlob, Color } from '../backend';
 
 export interface ProductFormData {
   name: string;
@@ -15,258 +16,330 @@ export interface ProductFormData {
   retailPrice: number;
   wholesalePrice: number;
   directPrice: number;
+  images: ExternalBlob[];
+  visibility: string;
+  stockCount: number;
   availableQuantity: number;
   madeToOrder: boolean;
-  visibility: ProductVisibility;
-  images: ExternalBlob[];
   colors: Color[];
 }
 
 interface ProductFormProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (formData: ProductFormData) => Promise<void>;
-  editingProduct?: Product | null;
-  isLoading?: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (data: ProductFormData) => Promise<void>;
+  isSubmitting?: boolean;
+  title?: string;
+  initialData?: Product | null;
 }
 
-export default function ProductForm({ isOpen, onClose, onSubmit, editingProduct, isLoading = false }: ProductFormProps) {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [retailPrice, setRetailPrice] = useState('');
-  const [wholesalePrice, setWholesalePrice] = useState('');
-  const [directPrice, setDirectPrice] = useState('');
-  const [availableQuantity, setAvailableQuantity] = useState('1');
-  const [madeToOrder, setMadeToOrder] = useState(false);
-  const [visibility, setVisibility] = useState<ProductVisibility>(ProductVisibility.all);
-  const [images, setImages] = useState<ExternalBlob[]>([]);
-  const [colors, setColors] = useState<Color[]>([]);
-  const [colorName, setColorName] = useState('');
-  const [colorHex, setColorHex] = useState('#000000');
+const defaultFormData: ProductFormData = {
+  name: '',
+  description: '',
+  retailPrice: 0,
+  wholesalePrice: 0,
+  directPrice: 0,
+  images: [],
+  visibility: 'all',
+  stockCount: 0,
+  availableQuantity: 0,
+  madeToOrder: false,
+  colors: [],
+};
 
+export default function ProductForm({
+  open,
+  onOpenChange,
+  onSubmit,
+  isSubmitting = false,
+  title = 'Product',
+  initialData,
+}: ProductFormProps) {
+  const [formData, setFormData] = useState<ProductFormData>(defaultFormData);
+  const [newColorName, setNewColorName] = useState('');
+  const [newColorHex, setNewColorHex] = useState('#000000');
+  const [errors, setErrors] = useState<Partial<Record<keyof ProductFormData, string>>>({});
+
+  // Populate form when editing
   useEffect(() => {
-    if (isOpen) {
-      if (editingProduct) {
-        setName(editingProduct.name);
-        setDescription(editingProduct.description);
-        setRetailPrice(editingProduct.retailPrice.toString());
-        setWholesalePrice(editingProduct.wholesalePrice.toString());
-        setDirectPrice(editingProduct.directPrice.toString());
-        setAvailableQuantity(editingProduct.availableQuantity.toString());
-        setMadeToOrder(editingProduct.madeToOrder);
-        setVisibility(editingProduct.visibility as ProductVisibility);
-        setImages(editingProduct.images);
-        setColors(editingProduct.colors.map(c => ({ name: c.name, hex: c.hex })));
-      } else {
-        setName('');
-        setDescription('');
-        setRetailPrice('');
-        setWholesalePrice('');
-        setDirectPrice('');
-        setAvailableQuantity('1');
-        setMadeToOrder(false);
-        setVisibility(ProductVisibility.all);
-        setImages([]);
-        setColors([]);
-      }
-      setColorName('');
-      setColorHex('#000000');
+    if (open && initialData) {
+      const visibilityStr = (() => {
+        const v = initialData.visibility as unknown as { all?: null; retailOnly?: null; wholesaleOnly?: null } | string;
+        if (typeof v === 'object') {
+          if ('all' in v) return 'all';
+          if ('retailOnly' in v) return 'retailOnly';
+          if ('wholesaleOnly' in v) return 'wholesaleOnly';
+        }
+        return String(v);
+      })();
+
+      setFormData({
+        name: initialData.name,
+        description: initialData.description,
+        retailPrice: Number(initialData.retailPrice) / 100,
+        wholesalePrice: Number(initialData.wholesalePrice) / 100,
+        directPrice: Number(initialData.directPrice) / 100,
+        images: initialData.images as ExternalBlob[],
+        visibility: visibilityStr,
+        stockCount: Number(initialData.stockCount),
+        availableQuantity: Number(initialData.availableQuantity),
+        madeToOrder: initialData.madeToOrder,
+        colors: initialData.colors,
+      });
+    } else if (open && !initialData) {
+      setFormData(defaultFormData);
+      setErrors({});
     }
-  }, [isOpen, editingProduct]);
+  }, [open, initialData]);
 
-  const handleAddColor = () => {
-    if (!colorName.trim()) return;
-    setColors([...colors, { name: colorName.trim(), hex: colorHex }]);
-    setColorName('');
-    setColorHex('#000000');
-  };
-
-  const handleRemoveColor = (index: number) => {
-    setColors(colors.filter((_, i) => i !== index));
+  const validate = (): boolean => {
+    const newErrors: Partial<Record<keyof ProductFormData, string>> = {};
+    if (!formData.name.trim()) newErrors.name = 'Product name is required.';
+    if (formData.retailPrice < 0) newErrors.retailPrice = 'Retail price must be 0 or more.';
+    if (formData.wholesalePrice < 0) newErrors.wholesalePrice = 'Wholesale price must be 0 or more.';
+    if (formData.directPrice < 0) newErrors.directPrice = 'Direct price must be 0 or more.';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onSubmit({
-      name: name.trim(),
-      description: description.trim(),
-      retailPrice: Math.round(parseFloat(retailPrice) || 0),
-      wholesalePrice: Math.round(parseFloat(wholesalePrice) || 0),
-      directPrice: Math.round(parseFloat(directPrice) || 0),
-      availableQuantity: Math.round(parseFloat(availableQuantity) || 0),
-      madeToOrder,
-      visibility,
-      images,
-      colors,
-    });
+    if (!validate()) return;
+    await onSubmit(formData);
+  };
+
+  const handleAddColor = () => {
+    if (!newColorName.trim()) return;
+    setFormData((prev) => ({
+      ...prev,
+      colors: [...prev.colors, { name: newColorName.trim(), hex: newColorHex }],
+    }));
+    setNewColorName('');
+    setNewColorHex('#000000');
+  };
+
+  const handleRemoveColor = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      colors: prev.colors.filter((_, i) => i !== index),
+    }));
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-white dark:bg-card">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white dark:bg-card">
         <DialogHeader>
-          <DialogTitle className="font-serif">
-            {editingProduct ? 'Edit Product' : 'Add Product'}
-          </DialogTitle>
+          <DialogTitle className="font-serif text-xl">{title}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-2">
-          {/* Images */}
-          <div className="flex flex-col gap-1.5">
-            <Label>Product Images</Label>
-            <MultiImageUpload
-              images={images}
-              onChange={setImages}
-              maxImages={5}
-            />
-          </div>
-
+        <form onSubmit={handleSubmit} className="space-y-5">
           {/* Name */}
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="product-name">Product Name *</Label>
+          <div className="space-y-1">
+            <Label htmlFor="name">
+              Product Name <span className="text-destructive">*</span>
+            </Label>
             <Input
-              id="product-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              id="name"
+              value={formData.name}
+              onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
               placeholder="e.g. Handwoven Silk Saree"
-              required
+              disabled={isSubmitting}
             />
+            {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
           </div>
 
           {/* Description */}
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="product-description">Description</Label>
+          <div className="space-y-1">
+            <Label htmlFor="description">Description</Label>
             <Textarea
-              id="product-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe the product..."
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))}
+              placeholder="Describe your product..."
               rows={3}
+              disabled={isSubmitting}
             />
           </div>
 
           {/* Prices */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="retail-price">Retail Price (₹)</Label>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-1">
+              <Label htmlFor="retailPrice">Retail Price (₹)</Label>
               <Input
-                id="retail-price"
+                id="retailPrice"
                 type="number"
-                min="0"
-                value={retailPrice}
-                onChange={(e) => setRetailPrice(e.target.value)}
-                placeholder="0"
+                min={0}
+                step={0.01}
+                value={formData.retailPrice}
+                onChange={(e) => setFormData((p) => ({ ...p, retailPrice: parseFloat(e.target.value) || 0 }))}
+                disabled={isSubmitting}
+              />
+              {errors.retailPrice && <p className="text-xs text-destructive">{errors.retailPrice}</p>}
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="wholesalePrice">Wholesale Price (₹)</Label>
+              <Input
+                id="wholesalePrice"
+                type="number"
+                min={0}
+                step={0.01}
+                value={formData.wholesalePrice}
+                onChange={(e) => setFormData((p) => ({ ...p, wholesalePrice: parseFloat(e.target.value) || 0 }))}
+                disabled={isSubmitting}
+              />
+              {errors.wholesalePrice && <p className="text-xs text-destructive">{errors.wholesalePrice}</p>}
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="directPrice">Direct Price (₹)</Label>
+              <Input
+                id="directPrice"
+                type="number"
+                min={0}
+                step={0.01}
+                value={formData.directPrice}
+                onChange={(e) => setFormData((p) => ({ ...p, directPrice: parseFloat(e.target.value) || 0 }))}
+                disabled={isSubmitting}
+              />
+              {errors.directPrice && <p className="text-xs text-destructive">{errors.directPrice}</p>}
+            </div>
+          </div>
+
+          {/* Visibility */}
+          <div className="space-y-1">
+            <Label>Visibility</Label>
+            <Select
+              value={formData.visibility}
+              onValueChange={(v) => setFormData((p) => ({ ...p, visibility: v }))}
+              disabled={isSubmitting}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select visibility" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Customers</SelectItem>
+                <SelectItem value="retailOnly">Retail Only</SelectItem>
+                <SelectItem value="wholesaleOnly">Wholesale Only</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Stock */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <Label htmlFor="stockCount">Stock Count</Label>
+              <Input
+                id="stockCount"
+                type="number"
+                min={0}
+                value={formData.stockCount}
+                onChange={(e) => setFormData((p) => ({ ...p, stockCount: parseInt(e.target.value) || 0 }))}
+                disabled={isSubmitting}
               />
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="wholesale-price">Wholesale Price (₹)</Label>
+            <div className="space-y-1">
+              <Label htmlFor="availableQuantity">Available Quantity</Label>
               <Input
-                id="wholesale-price"
+                id="availableQuantity"
                 type="number"
-                min="0"
-                value={wholesalePrice}
-                onChange={(e) => setWholesalePrice(e.target.value)}
-                placeholder="0"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="direct-price">Direct Price (₹)</Label>
-              <Input
-                id="direct-price"
-                type="number"
-                min="0"
-                value={directPrice}
-                onChange={(e) => setDirectPrice(e.target.value)}
-                placeholder="0"
+                min={0}
+                value={formData.availableQuantity}
+                onChange={(e) => setFormData((p) => ({ ...p, availableQuantity: parseInt(e.target.value) || 0 }))}
+                disabled={isSubmitting}
               />
             </div>
           </div>
 
-          {/* Quantity & Visibility */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="quantity">Available Quantity</Label>
-              <Input
-                id="quantity"
-                type="number"
-                min="0"
-                value={availableQuantity}
-                onChange={(e) => setAvailableQuantity(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Visibility</Label>
-              <Select value={visibility} onValueChange={(v) => setVisibility(v as ProductVisibility)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-card">
-                  <SelectItem value={ProductVisibility.all}>All Customers</SelectItem>
-                  <SelectItem value={ProductVisibility.retailOnly}>Retail Only</SelectItem>
-                  <SelectItem value={ProductVisibility.wholesaleOnly}>Wholesale Only</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Made to Order toggle */}
+          {/* Made to Order */}
           <div className="flex items-center gap-3">
             <Switch
-              id="made-to-order"
-              checked={madeToOrder}
-              onCheckedChange={setMadeToOrder}
+              id="madeToOrder"
+              checked={formData.madeToOrder}
+              onCheckedChange={(checked) => setFormData((p) => ({ ...p, madeToOrder: checked }))}
+              disabled={isSubmitting}
             />
-            <Label htmlFor="made-to-order">Made to Order</Label>
+            <Label htmlFor="madeToOrder">Made to Order</Label>
           </div>
 
           {/* Colors */}
-          <div className="flex flex-col gap-2">
+          <div className="space-y-2">
             <Label>Colors</Label>
-            <div className="flex gap-2">
-              <Input
-                value={colorName}
-                onChange={(e) => setColorName(e.target.value)}
-                placeholder="Color name"
-                className="flex-1"
-              />
+            <div className="flex flex-wrap gap-2 mb-2">
+              {formData.colors.map((color, i) => (
+                <span
+                  key={i}
+                  className="flex items-center gap-1 px-2 py-1 rounded-full text-xs border border-border bg-muted"
+                >
+                  <span
+                    className="w-3 h-3 rounded-full inline-block border border-border"
+                    style={{ backgroundColor: color.hex }}
+                  />
+                  {color.name}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveColor(i)}
+                    className="ml-1 text-muted-foreground hover:text-destructive"
+                    disabled={isSubmitting}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2 items-center">
               <input
                 type="color"
-                value={colorHex}
-                onChange={(e) => setColorHex(e.target.value)}
-                className="w-10 h-10 rounded border border-border cursor-pointer"
+                value={newColorHex}
+                onChange={(e) => setNewColorHex(e.target.value)}
+                className="w-9 h-9 rounded border border-border cursor-pointer"
+                disabled={isSubmitting}
               />
-              <Button type="button" variant="outline" onClick={handleAddColor} disabled={!colorName.trim()}>
-                Add
+              <Input
+                placeholder="Color name"
+                value={newColorName}
+                onChange={(e) => setNewColorName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddColor(); } }}
+                disabled={isSubmitting}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddColor}
+                disabled={isSubmitting || !newColorName.trim()}
+              >
+                <Plus className="w-4 h-4" />
               </Button>
             </div>
-            {colors.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {colors.map((color, i) => (
-                  <div key={i} className="flex items-center gap-1.5 bg-muted rounded-full px-3 py-1">
-                    <span
-                      className="w-3 h-3 rounded-full border border-border"
-                      style={{ backgroundColor: color.hex }}
-                    />
-                    <span className="text-xs">{color.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveColor(i)}
-                      className="text-muted-foreground hover:text-destructive ml-1 text-xs"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
 
-          <DialogFooter className="mt-2">
-            <Button type="button" variant="outline" onClick={onClose}>
+          {/* Images */}
+          <div className="space-y-1">
+            <Label>Product Images</Label>
+            <MultiImageUpload
+              images={formData.images}
+              onChange={(images) => setFormData((p) => ({ ...p, images }))}
+            />
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={!name.trim() || isLoading}>
-              {isLoading ? 'Saving...' : editingProduct ? 'Update Product' : 'Add Product'}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving…
+                </>
+              ) : (
+                'Save Product'
+              )}
             </Button>
           </DialogFooter>
         </form>

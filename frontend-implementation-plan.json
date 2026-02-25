@@ -1,58 +1,32 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Remove login prompt and hide Add Product button from customer-facing catalog views",
+  "title": "Fix 'Add Product' failure error",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Enable anonymous access to public catalog and product detail pages without authentication prompts or redirects",
+      "summary": "Diagnose and fix the 'failed to add product' error when submitting the product form on the Catalog Management page",
       "acceptanceCriteria": [
-        "Opening a shared catalog link (e.g., /catalog/:weaverId) without being logged in loads the catalog page directly with no login prompt or redirect",
-        "Opening a shared product detail link (e.g., /product/:productId) without being logged in loads the product page directly with no login prompt or redirect",
-        "The backend query calls for public catalog and product data accept anonymous callers and return data without requiring authentication",
-        "The router layout for public catalog and product pages has no authentication guard"
+        "Clicking 'Add Product' and submitting a valid product form does not show a 'failed to add product' error toast or message.",
+        "The newly added product appears in the catalog grid after successful submission.",
+        "Any backend error response is caught and surfaced with a meaningful error message instead of a generic failure.",
+        "The product form closes upon successful submission."
       ],
       "file_operations": [
-        {
-          "path": "frontend/src/App.tsx",
-          "operation": "modify",
-          "description": "Review the current router configuration with two pathless layout routes (authenticated weaver layout and public layout). Ensure the public layout route explicitly covers the PublicCatalogPage and PublicProductDetailPage routes without any authentication guards. The public layout must allow anonymous access by default."
-        },
-        {
-          "path": "frontend/src/pages/PublicCatalogPage.tsx",
-          "operation": "modify",
-          "description": "Verify this page uses the backend method getPublicCatalogNonAuthenticated which accepts anonymous callers. Ensure the page component does not check authentication state or redirect unauthenticated users. Remove any conditional logic that blocks anonymous access or shows login prompts."
-        },
-        {
-          "path": "frontend/src/pages/PublicProductDetailPage.tsx",
-          "operation": "modify",
-          "description": "Verify this page uses the backend method getPublicProduct which accepts anonymous callers. Ensure the page component does not check authentication state or redirect unauthenticated users. Remove any conditional logic that blocks anonymous access or shows login prompts."
-        },
         {
           "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Review the React Query hooks for public catalog and product data fetching. Ensure they use the anonymous-friendly backend methods (getPublicCatalogNonAuthenticated and getPublicProduct) and do not require an authenticated actor. Configure these queries to work with the anonymous actor provided by useActor when no identity is present."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Hide the Add Product button and owner-only controls from the public catalog page for unauthenticated customers",
-      "acceptanceCriteria": [
-        "When a customer visits a shared catalog link without being logged in, the 'Add Product' button is not rendered anywhere on the page",
-        "When an authenticated weaver views their own catalog management page, the 'Add Product' button remains visible and functional",
-        "No other owner-only controls (edit, delete, stock toggle) are visible on the public catalog page"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/PublicCatalogPage.tsx",
-          "operation": "modify",
-          "description": "Remove or conditionally hide the Add Product button and any owner-only UI controls from this page. Since this is a public customer-facing page, ensure no management controls (add, edit, delete, stock toggle, share links) are rendered. The page should display only the product grid with pricing appropriate for the customer type."
+          "description": "Fix the useAddProduct mutation to properly await the backend call, handle the returned product ID, catch errors with detailed error messages, and ensure query invalidation triggers a catalog refresh. Add proper error logging to diagnose failures."
         },
         {
-          "path": "frontend/src/components/ProductCard.tsx",
+          "path": "frontend/src/components/ProductForm.tsx",
           "operation": "modify",
-          "description": "Add a prop (e.g., showOwnerControls: boolean) to conditionally render owner controls (edit, delete, toggle stock, share links). When this component is used in PublicCatalogPage, pass showOwnerControls={false} to hide all owner actions. Ensure the component displays only the product image, price, and stock status when owner controls are disabled."
+          "description": "Update the ProductForm component to display specific error messages from the backend when product submission fails. Replace generic 'failed to add product' toasts with descriptive error details extracted from the mutation error. Ensure the form closes only on successful submission and shows validation feedback."
+        },
+        {
+          "path": "frontend/src/pages/CatalogManagementPage.tsx",
+          "operation": "modify",
+          "description": "Verify that the CatalogManagementPage correctly wires the ProductForm's onSuccess callback to close the form dialog and that query invalidation properly refreshes the product grid. Add error boundary handling if the mutation fails silently."
         }
       ]
     }

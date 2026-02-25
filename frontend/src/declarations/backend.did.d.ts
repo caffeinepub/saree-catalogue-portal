@@ -37,6 +37,11 @@ export type CustomerType = { 'retail' : null } |
   { 'direct' : null } |
   { 'wholesale' : null };
 export type ExternalBlob = Uint8Array;
+export interface InviteCode {
+  'created' : Time,
+  'code' : string,
+  'used' : boolean,
+}
 export interface Product {
   'id' : bigint,
   'retailPrice' : bigint,
@@ -45,6 +50,7 @@ export interface Product {
   'name' : string,
   'wholesalePrice' : bigint,
   'description' : string,
+  'stockCount' : bigint,
   'madeToOrder' : boolean,
   'directPrice' : bigint,
   'colors' : Array<Color>,
@@ -57,6 +63,7 @@ export interface ProductForm {
   'name' : string,
   'wholesalePrice' : bigint,
   'description' : string,
+  'stockCount' : bigint,
   'madeToOrder' : boolean,
   'directPrice' : bigint,
   'colors' : Array<Color>,
@@ -66,6 +73,13 @@ export interface ProductForm {
 export type ProductVisibility = { 'all' : null } |
   { 'wholesaleOnly' : null } |
   { 'retailOnly' : null };
+export interface RSVP {
+  'name' : string,
+  'inviteCode' : string,
+  'timestamp' : Time,
+  'attending' : boolean,
+}
+export type Time = bigint;
 export interface UserProfile { 'name' : string }
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
@@ -110,13 +124,17 @@ export interface _SERVICE {
     [string, ExternalBlob, string],
     undefined
   >,
+  'explicitSetStockCount' : ActorMethod<[bigint, bigint], undefined>,
+  'generateInviteCode' : ActorMethod<[], string>,
   'getAllCustomers' : ActorMethod<[], Array<Customer>>,
+  'getAllRSVPs' : ActorMethod<[], Array<RSVP>>,
   'getCallerProfile' : ActorMethod<[], [] | [WeaverProfile]>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCatalogByCustomerType' : ActorMethod<[CustomerType], Array<Product>>,
   'getCatalogByWeaver' : ActorMethod<[Principal, CustomerType], Array<Product>>,
   'getCustomer' : ActorMethod<[string], [] | [Customer]>,
+  'getInviteCodes' : ActorMethod<[], Array<InviteCode>>,
   'getMyProducts' : ActorMethod<[], Array<Product>>,
   'getProduct' : ActorMethod<[bigint, Principal], [] | [Product]>,
   'getPublicCatalogNonAuthenticated' : ActorMethod<
@@ -129,6 +147,7 @@ export interface _SERVICE {
   'removeCustomer' : ActorMethod<[string], undefined>,
   'removeProduct' : ActorMethod<[bigint], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'submitRSVP' : ActorMethod<[string, boolean, string], undefined>,
   'toggleOutOfStock' : ActorMethod<[bigint], undefined>,
   'updateProduct' : ActorMethod<[bigint, ProductForm], undefined>,
   'updateProductQuantity' : ActorMethod<[bigint, bigint], undefined>,

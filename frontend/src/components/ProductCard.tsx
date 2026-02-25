@@ -17,7 +17,9 @@ import {
   Share2,
   Copy,
   ExternalLink,
+  Boxes,
 } from "lucide-react";
+import { SiWhatsapp } from "react-icons/si";
 import { toast } from "sonner";
 
 interface ProductCardProps {
@@ -91,6 +93,10 @@ export default function ProductCard({
     });
   };
 
+  const shareOnWhatsApp = (url: string) => {
+    window.open(`https://wa.me/?text=${encodeURIComponent(url)}`, "_blank");
+  };
+
   const shareLinks = [
     { label: "Retail", type: CustomerType.retail },
     { label: "Wholesale", type: CustomerType.wholesale },
@@ -138,9 +144,61 @@ export default function ProductCard({
           )}
 
           <div className="mt-auto">
-            <p className="text-lg font-bold text-primary">
-              {formatPrice(displayPrice)}
-            </p>
+            {/* Owner view: show all three prices with distinct colors + available quantity */}
+            {canShowOwnerControls ? (
+              <div className="space-y-1.5">
+                <div className="grid grid-cols-3 gap-1.5">
+                  <div className="flex flex-col items-start bg-amber-50 dark:bg-amber-950/30 rounded-lg px-2 py-1.5 border border-amber-200 dark:border-amber-800">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                      Retail
+                    </span>
+                    <span className="text-sm font-bold text-amber-700 dark:text-amber-300 leading-tight">
+                      {formatPrice(product.retailPrice)}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-start bg-teal-50 dark:bg-teal-950/30 rounded-lg px-2 py-1.5 border border-teal-200 dark:border-teal-800">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-teal-600 dark:text-teal-400">
+                      Wholesale
+                    </span>
+                    <span className="text-sm font-bold text-teal-700 dark:text-teal-300 leading-tight">
+                      {formatPrice(product.wholesalePrice)}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-start bg-rose-50 dark:bg-rose-950/30 rounded-lg px-2 py-1.5 border border-rose-200 dark:border-rose-800">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-rose-600 dark:text-rose-400">
+                      Direct
+                    </span>
+                    <span className="text-sm font-bold text-rose-700 dark:text-rose-300 leading-tight">
+                      {formatPrice(product.directPrice)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Available quantity */}
+                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Boxes className="w-3.5 h-3.5 shrink-0" />
+                  <span>
+                    Available:{" "}
+                    <span
+                      className={
+                        product.availableQuantity === 0n && !product.madeToOrder
+                          ? "text-destructive font-semibold"
+                          : "text-foreground font-semibold"
+                      }
+                    >
+                      {product.madeToOrder
+                        ? "Made to Order"
+                        : Number(product.availableQuantity)}
+                    </span>
+                  </span>
+                </div>
+              </div>
+            ) : (
+              /* Customer view: single price for their type */
+              <p className="text-lg font-bold text-primary">
+                {formatPrice(displayPrice)}
+              </p>
+            )}
 
             {/* Color swatches */}
             {product.colors && product.colors.length > 0 && (
@@ -230,6 +288,14 @@ export default function ProductCard({
                       onClick={() => copyToClipboard(url, label)}
                     >
                       <Copy className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => shareOnWhatsApp(url)}
+                      className="text-[#25D366] hover:text-[#1ebe5d] hover:bg-green-50 dark:hover:bg-green-950/30"
+                    >
+                      <SiWhatsapp className="w-4 h-4" />
                     </Button>
                     <Button
                       size="sm"
